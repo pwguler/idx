@@ -2,7 +2,7 @@
 //! returns a merged payload. Kept separate from [`crate::api::info`] /
 //! [`crate::api::profile`] so dispatch code never assembles JSON shapes itself.
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::api::{info, profile};
 use crate::client::Client;

@@ -1,8 +1,8 @@
 //! Generic retry-with-backoff helper. `tokio::test(start_paused = true)` means the
 //! exponential delays don't actually consume wall-clock time.
 
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Duration;
 
 use stockbit_cli::error::{Error, Result};

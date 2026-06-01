@@ -32,22 +32,37 @@ impl fmt::Debug for Config {
 }
 
 impl Config {
-    /// Resolve the runtime config. Precedence (highest first):
-    ///   1. CLI flag (`cli_token`, `base_url`)
-    ///   2. Environment variable (`STOCKBIT_BEARER_TOKEN`, loaded from `.env` if present)
-    ///   3. On-disk config at `~/.stockbit-cli/config.yaml`
-    ///   4. Defaults
-    pub fn resolve(cli_token: Option<String>, base_url: Option<String>) -> Result<Self> {
+    /// Convenience entry point used by the binary: loads `.env`, reads the env var
+    /// and the stored YAML file, then delegates to [`Config::merge`]. Tests reach
+    /// for `merge` directly so they can exercise precedence without touching the
+    /// process environment.
+    pub fn resolve(cli_token: Option<String>, cli_base_url: Option<String>) -> Result<Self> {
         let _ = dotenvy::dotenv();
+        let env_token = env::var(TOKEN_ENV).ok();
         let stored = StoredConfig::load().unwrap_or_default();
+        Self::merge(cli_token, cli_base_url, env_token, stored)
+    }
 
+    /// Pure precedence merger. Highest priority first:
+    ///   1. CLI flag (`cli_token`, `cli_base_url`)
+    ///   2. Environment value (`env_token`)
+    ///   3. On-disk stored config (`stored`)
+    ///   4. Defaults
+    ///
+    /// Whitespace-only tokens are treated as missing.
+    pub fn merge(
+        cli_token: Option<String>,
+        cli_base_url: Option<String>,
+        env_token: Option<String>,
+        stored: StoredConfig,
+    ) -> Result<Self> {
         let token = cli_token
-            .or_else(|| env::var(TOKEN_ENV).ok())
+            .or(env_token)
             .or(stored.token)
             .filter(|t| !t.trim().is_empty())
             .ok_or(Error::MissingToken)?;
 
-        let base_url = base_url
+        let base_url = cli_base_url
             .or(stored.base_url)
             .unwrap_or_else(|| DEFAULT_BASE_URL.to_string());
 

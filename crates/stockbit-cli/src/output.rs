@@ -13,11 +13,7 @@ pub enum Format {
 impl Format {
     #[must_use]
     pub fn from_pretty_flag(pretty: bool) -> Self {
-        if pretty {
-            Self::Pretty
-        } else {
-            Self::Compact
-        }
+        if pretty { Self::Pretty } else { Self::Compact }
     }
 }
 

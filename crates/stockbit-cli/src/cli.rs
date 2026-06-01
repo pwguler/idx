@@ -4,13 +4,13 @@
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::api;
 use crate::client::Client;
 use crate::config::{Config, TOKEN_ENV};
 use crate::error::Result;
-use crate::output::{print_json, Format};
+use crate::output::{Format, print_json};
 use crate::stored_config::StoredConfig;
 
 #[derive(Debug, Parser)]

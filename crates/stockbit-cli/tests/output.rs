@@ -1,7 +1,7 @@
 //! JSON output formatting.
 
 use serde_json::json;
-use stockbit_cli::output::{write_json, Format};
+use stockbit_cli::output::{Format, write_json};
 
 #[test]
 fn compact_is_single_line() {
