@@ -1,6 +1,6 @@
 # stockbit-cli
 
-Rust CLI wrapping the [Stockbit](https://stockbit.com) `exodus` REST API. Prints raw JSON to stdout.
+CLI wrapping the [Stockbit](https://stockbit.com) `exodus` REST API. Prints raw JSON to stdout.
 
 ## Install
 
