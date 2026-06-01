@@ -76,26 +76,6 @@ cargo test --test stockbit       # end-to-end against real Stockbit
 
 The end-to-end tests use [`wiremock`](https://crates.io/crates/wiremock) for the unit suite and hit real `exodus.stockbit.com` for the integration suite (gated on `STOCKBIT_BEARER_TOKEN`).
 
-## Project layout
-
-```
-src/
-  cli.rs            # clap-derive subcommand surface, dispatch
-  client.rs         # Client: auth header, capped linear-backoff retry
-  config.rs         # token / base_url resolution; custom Debug redacts secrets
-  retry.rs          # generic transient-error retry helper
-  output.rs         # stdout JSON (compact / pretty)
-  api/
-    keystats.rs broker_distribution.rs emitten.rs info.rs
-    market_detectors.rs orderbook.rs profile.rs
-    shareholders.rs trade_book.rs
-tests/
-  cli.rs            # hermetic CLI tests against wiremock
-  stockbit.rs       # end-to-end tests against real Stockbit
-```
-
-Every endpoint module exposes a single async `fetch(...)` returning `serde_json::Value`. The CLI never reshapes payloads — what Stockbit returns is what you get.
-
 ## Upstream quirks worth knowing
 
 - `keystats` only accepts `year_limit ∈ {0, 3, 10}`. The CLI snaps other values up to the nearest allowed one.
