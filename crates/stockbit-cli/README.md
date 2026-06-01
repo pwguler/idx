@@ -1,23 +1,16 @@
 # stockbit-cli
 
-Stateless Rust CLI wrapping the [Stockbit](https://stockbit.com) (`exodus`) REST API. One binary, nine subcommands, prints raw upstream JSON to stdout — pipe it into `jq`, redirect into a file, feed it to a notebook. No database, no caching, no scheduler.
-
-A faster, typed alternative to the Python crawlers in `stockbit-data/scripts/fetch/` for callers that just want the data.
+Rust CLI wrapping the [Stockbit](https://stockbit.com) `exodus` REST API. Prints raw JSON to stdout.
 
 ## Install
 
 ```bash
+# Directly from git
+cargo install --git https://github.com/gitshrl/stockbit-cli --locked
+
+# Or from a local checkout
 git clone https://github.com/gitshrl/stockbit-cli.git
-cd stockbit-cli
-cargo install --path . --locked
-# now `stockbit` is on your $PATH
-```
-
-Or run directly out of the build tree:
-
-```bash
-cargo build --release
-./target/release/stockbit --help
+cd stockbit-cli && cargo install --path . --locked
 ```
 
 Requires Rust 1.96 (pinned in `rust-toolchain.toml`).
@@ -31,8 +24,6 @@ Stockbit's `exodus` API uses bearer tokens. Provide one of:
 | CLI flag            | `stockbit --token eyJhbG… keystats BBRI`        |
 | Environment         | `STOCKBIT_BEARER_TOKEN=eyJhbG… stockbit ...`    |
 | `.env` in cwd       | `STOCKBIT_BEARER_TOKEN=eyJhbG…`                 |
-
-Get a token from `stockbit-data/scripts/auth/` (Playwright-driven web login + refresh).
 
 ## Subcommands
 
@@ -112,7 +103,3 @@ Every endpoint module exposes a single async `fetch(...)` returning `serde_json:
 - `shareholders` returns 404 for ETFs and suspended issues; the CLI surfaces this as `{"data": null, "_note": "..."}` rather than an error.
 - Retries on `5xx`, `429`, network timeouts; never on `4xx` (apart from the 404 case above).
 - IDX trading days only: avoid weekends and Indonesian public holidays for date-bounded endpoints.
-
-## License
-
-MIT.
