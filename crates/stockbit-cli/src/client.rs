@@ -66,6 +66,16 @@ impl Client {
         self
     }
 
+    /// Test-only constructor: a client pointed at a `wiremock::MockServer` with
+    /// retries effectively disabled. Lives here so endpoint test modules share one
+    /// builder without an extra `test_support` file in `src/`.
+    #[cfg(test)]
+    pub fn for_mock(server: &wiremock::MockServer) -> Self {
+        Self::new(&Config::for_test(server.uri(), "test-token"))
+            .expect("client builds")
+            .with_retry_base(Duration::from_millis(1))
+    }
+
     /// Resolve a relative path against the configured base URL.
     pub fn url(&self, path: &str) -> Result<Url> {
         // Strip leading '/' so `Url::join` treats the input as relative and appends
@@ -109,7 +119,6 @@ fn truncate(s: &str, max: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::test_client as client_for;
     use serde_json::json;
     use wiremock::matchers::{header, header_exists, method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -127,7 +136,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let c = client_for(&server);
+        let c = Client::for_mock(&server);
         let v = c.get_json("/ping", &[(); 0]).await.unwrap();
         assert_eq!(v, json!({"ok": true}));
     }
@@ -144,7 +153,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let c = client_for(&server);
+        let c = Client::for_mock(&server);
         let v = c.get_json("/q", &[("a", "1"), ("b", "two")]).await.unwrap();
         assert_eq!(v["got"], "params");
     }
@@ -166,7 +175,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let c = client_for(&server);
+        let c = Client::for_mock(&server);
         let v = c.get_json("/flaky", &[(); 0]).await.unwrap();
         assert_eq!(v["ok"], 1);
     }
@@ -181,7 +190,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let c = client_for(&server);
+        let c = Client::for_mock(&server);
         let err = c.get_json("/missing", &[(); 0]).await.unwrap_err();
         match err {
             Error::Api { status, body } => {
@@ -195,7 +204,7 @@ mod tests {
     #[tokio::test]
     async fn url_joining_preserves_path_segments() {
         let server = MockServer::start().await;
-        let c = client_for(&server);
+        let c = Client::for_mock(&server);
         let u = c.url("/keystats/ratio/v1/BBRI").unwrap();
         assert!(u.path().ends_with("/keystats/ratio/v1/BBRI"));
     }
@@ -226,7 +235,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let c = client_for(&server);
+        let c = Client::for_mock(&server);
         let v = c.get_json("/r", &[(); 0]).await.unwrap();
         assert_eq!(v["ok"], 1);
     }
@@ -241,7 +250,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let c = client_for(&server);
+        let c = Client::for_mock(&server);
         let err = c.get_json("/auth", &[(); 0]).await.unwrap_err();
         match err {
             Error::Api { status: 401, .. } => {}

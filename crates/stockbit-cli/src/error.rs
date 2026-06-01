@@ -22,6 +22,12 @@ pub enum Error {
 
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
+
+    #[error("YAML error: {0}")]
+    Yaml(#[from] serde_yaml::Error),
+
+    #[error("config error: {0}")]
+    Config(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

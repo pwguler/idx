@@ -35,7 +35,7 @@ pub async fn fetch(client: &Client, symbol: &str, year_limit: u32) -> Result<Val
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::test_client;
+
     use serde_json::json;
     use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -61,7 +61,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let v = fetch(&test_client(&server), "bbri", 10).await.unwrap();
+        let v = fetch(&Client::for_mock(&server), "bbri", 10).await.unwrap();
         assert_eq!(v["data"]["per"], 12.3);
     }
 }

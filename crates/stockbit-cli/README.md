@@ -17,13 +17,32 @@ Requires Rust 1.96 (pinned in `rust-toolchain.toml`).
 
 ## Authentication
 
-Stockbit's `exodus` API uses bearer tokens. Provide one of:
+Stockbit's `exodus` API uses bearer tokens. Save yours once, then forget about it:
 
-| Source              | Example                                         |
-|---------------------|-------------------------------------------------|
-| CLI flag            | `stockbit --token eyJhbG… keystats BBRI`        |
-| Environment         | `STOCKBIT_BEARER_TOKEN=eyJhbG… stockbit ...`    |
-| `.env` in cwd       | `STOCKBIT_BEARER_TOKEN=eyJhbG…`                 |
+```bash
+stockbit config set token eyJhbG…
+```
+
+This writes `~/.stockbit-cli/config.yaml` (file `0600`, dir `0700`). All subsequent invocations pick it up automatically.
+
+Other sources, resolved in this order (first wins):
+
+| Priority | Source              | Example                                         |
+|---------:|---------------------|-------------------------------------------------|
+| 1        | CLI flag            | `stockbit --token eyJhbG… keystats BBRI`        |
+| 2        | Environment         | `STOCKBIT_BEARER_TOKEN=eyJhbG… stockbit ...`    |
+| 3        | `~/.stockbit-cli/config.yaml` | (written by `config set`)            |
+
+### Config management
+
+```bash
+stockbit config show              # print stored config (token shown as <set>/<unset>)
+stockbit config path              # print path: ~/.stockbit-cli/config.yaml
+stockbit config set token <VAL>   # save token (or base-url)
+stockbit config unset token       # remove a key
+```
+
+Same precedence rules apply to `base-url` (CLI flag > stored config > default `https://exodus.stockbit.com`).
 
 ## Subcommands
 

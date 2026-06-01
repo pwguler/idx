@@ -20,7 +20,7 @@ pub async fn fetch(client: &Client, symbol: &str, date: &str) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::test_client;
+
     use serde_json::json;
     use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -37,7 +37,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        fetch(&test_client(&server), "BBRI", "2026-01-02")
+        fetch(&Client::for_mock(&server), "BBRI", "2026-01-02")
             .await
             .unwrap();
     }
@@ -45,7 +45,7 @@ mod tests {
     #[tokio::test]
     async fn rejects_bad_date_locally() {
         let server = MockServer::start().await;
-        let err = fetch(&test_client(&server), "BBRI", "bad")
+        let err = fetch(&Client::for_mock(&server), "BBRI", "bad")
             .await
             .unwrap_err();
         assert!(matches!(err, crate::error::Error::InvalidDate { .. }));

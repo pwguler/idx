@@ -2,6 +2,7 @@ use std::env;
 use std::fmt;
 
 use crate::error::{Error, Result};
+use crate::stored_config::StoredConfig;
 
 pub const DEFAULT_BASE_URL: &str = "https://exodus.stockbit.com";
 pub const TOKEN_ENV: &str = "STOCKBIT_BEARER_TOKEN";
@@ -31,16 +32,27 @@ impl fmt::Debug for Config {
 }
 
 impl Config {
-    /// Load token from CLI flag or env var. Loads `.env` on first call if present.
+    /// Resolve the runtime config. Precedence (highest first):
+    ///   1. CLI flag (`cli_token`, `base_url`)
+    ///   2. Environment variable (`STOCKBIT_BEARER_TOKEN`, loaded from `.env` if present)
+    ///   3. On-disk config at `~/.stockbit-cli/config.yaml`
+    ///   4. Defaults
     pub fn resolve(cli_token: Option<String>, base_url: Option<String>) -> Result<Self> {
         let _ = dotenvy::dotenv();
+        let stored = StoredConfig::load().unwrap_or_default();
+
         let token = cli_token
             .or_else(|| env::var(TOKEN_ENV).ok())
+            .or(stored.token)
             .filter(|t| !t.trim().is_empty())
             .ok_or(Error::MissingToken)?;
 
+        let base_url = base_url
+            .or(stored.base_url)
+            .unwrap_or_else(|| DEFAULT_BASE_URL.to_string());
+
         Ok(Self {
-            base_url: base_url.unwrap_or_else(|| DEFAULT_BASE_URL.to_string()),
+            base_url,
             token,
             user_agent: USER_AGENT.to_string(),
             request_timeout: std::time::Duration::from_secs(30),

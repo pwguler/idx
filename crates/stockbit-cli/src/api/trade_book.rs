@@ -34,7 +34,7 @@ pub async fn fetch(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::test_client;
+
     use serde_json::json;
     use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -54,7 +54,7 @@ mod tests {
             .await;
 
         fetch(
-            &test_client(&server),
+            &Client::for_mock(&server),
             "BBRI",
             "2026-01-02",
             DEFAULT_GROUP_BY,
@@ -68,7 +68,7 @@ mod tests {
     async fn rejects_bad_date_locally() {
         let server = MockServer::start().await;
         let err = fetch(
-            &test_client(&server),
+            &Client::for_mock(&server),
             "BBRI",
             "2026-13-99",
             DEFAULT_GROUP_BY,

@@ -56,7 +56,7 @@ pub async fn fetch(client: &Client, symbol: &str, params: &Params<'_>) -> Result
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::test_client;
+
     use serde_json::json;
     use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -75,7 +75,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        fetch(&test_client(&server), "BBRI", &Params::default())
+        fetch(&Client::for_mock(&server), "BBRI", &Params::default())
             .await
             .unwrap();
     }
@@ -97,7 +97,7 @@ mod tests {
             to: Some("2026-01-02"),
             ..Params::default()
         };
-        fetch(&test_client(&server), "BBCA", &p).await.unwrap();
+        fetch(&Client::for_mock(&server), "BBCA", &p).await.unwrap();
     }
 
     #[tokio::test]
@@ -116,7 +116,7 @@ mod tests {
             to: None,
             ..Params::default()
         };
-        fetch(&test_client(&server), "BBRI", &p).await.unwrap();
+        fetch(&Client::for_mock(&server), "BBRI", &p).await.unwrap();
     }
 
     #[tokio::test]
@@ -126,7 +126,9 @@ mod tests {
             from: Some("not-a-date"),
             ..Params::default()
         };
-        let err = fetch(&test_client(&server), "BBCA", &p).await.unwrap_err();
+        let err = fetch(&Client::for_mock(&server), "BBCA", &p)
+            .await
+            .unwrap_err();
         assert!(matches!(err, crate::error::Error::InvalidDate { .. }));
     }
 
@@ -137,7 +139,9 @@ mod tests {
             to: Some("2026-13-99"),
             ..Params::default()
         };
-        let err = fetch(&test_client(&server), "BBCA", &p).await.unwrap_err();
+        let err = fetch(&Client::for_mock(&server), "BBCA", &p)
+            .await
+            .unwrap_err();
         assert!(matches!(err, crate::error::Error::InvalidDate { .. }));
     }
 }

@@ -11,6 +11,4 @@ pub mod config;
 pub mod error;
 pub mod output;
 pub mod retry;
-
-#[cfg(test)]
-pub(crate) mod test_support;
+pub mod stored_config;

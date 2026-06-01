@@ -22,7 +22,7 @@ pub async fn fetch(client: &Client, symbol: &str) -> Result<Option<Value>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::test_client;
+
     use serde_json::json;
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -39,7 +39,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let v = fetch(&test_client(&server), "BBRI").await.unwrap();
+        let v = fetch(&Client::for_mock(&server), "BBRI").await.unwrap();
         assert!(v.is_some());
     }
 
@@ -53,7 +53,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let v = fetch(&test_client(&server), "XXXX").await.unwrap();
+        let v = fetch(&Client::for_mock(&server), "XXXX").await.unwrap();
         assert!(v.is_none());
     }
 
@@ -67,7 +67,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let err = fetch(&test_client(&server), "BBRI").await.unwrap_err();
+        let err = fetch(&Client::for_mock(&server), "BBRI").await.unwrap_err();
         assert!(matches!(err, Error::Api { status: 403, .. }));
     }
 }
