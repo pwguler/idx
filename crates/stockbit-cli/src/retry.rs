@@ -9,6 +9,10 @@ const MAX_BACKOFF: Duration = Duration::from_secs(30);
 ///
 /// Mirrors the Python scripts' `(attempt+1) * 2 seconds` linear delay but capped
 /// and exposed for unit-test override.
+///
+/// # Errors
+///
+/// Propagates the last error from `op` once retries are exhausted or the error is non-transient.
 pub async fn with_backoff<F, Fut, T>(max_retries: u32, base: Duration, mut op: F) -> Result<T>
 where
     F: FnMut(u32) -> Fut,

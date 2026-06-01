@@ -29,6 +29,9 @@ pub struct StoredConfig {
 
 impl StoredConfig {
     /// Default on-disk path: `$HOME/.stockbit-cli/config.yaml`.
+    /// # Errors
+    ///
+    /// Fails if `$HOME` is unset.
     pub fn default_path() -> Result<PathBuf> {
         let home =
             std::env::var("HOME").map_err(|_| Error::Config("$HOME is not set".to_string()))?;
@@ -39,10 +42,16 @@ impl StoredConfig {
 
     /// Load from the default path. Returns [`StoredConfig::default`] if the file
     /// does not exist (a fresh install is not an error).
+    /// # Errors
+    ///
+    /// Fails if `$HOME` is unset or the file exists but contains malformed YAML.
     pub fn load() -> Result<Self> {
         Self::load_from(&Self::default_path()?)
     }
 
+    /// # Errors
+    ///
+    /// Fails on filesystem read errors or malformed YAML.
     pub fn load_from(path: &Path) -> Result<Self> {
         match fs::read_to_string(path) {
             Ok(s) if s.trim().is_empty() => Ok(Self::default()),
@@ -53,6 +62,9 @@ impl StoredConfig {
     }
 
     /// Save to the default path, creating the parent directory if needed.
+    /// # Errors
+    ///
+    /// Fails if `$HOME` is unset, on filesystem write errors, or serialization errors.
     pub fn save(&self) -> Result<PathBuf> {
         let path = Self::default_path()?;
         self.save_to(&path)?;
@@ -61,6 +73,9 @@ impl StoredConfig {
 
     /// Atomic write: serialise to a sibling temp file, fsync, rename into place.
     /// On Unix the file ends with mode 0600 and the parent directory with 0700.
+    /// # Errors
+    ///
+    /// Fails on filesystem write errors or serialization errors.
     pub fn save_to(&self, path: &Path) -> Result<()> {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
@@ -81,6 +96,9 @@ impl StoredConfig {
 
     /// Convenience: update one of the known string keys (case-insensitive).
     /// Returns the previous value, if any.
+    /// # Errors
+    ///
+    /// Returns [`Error::Config`] for unknown keys.
     pub fn set(&mut self, key: &str, value: String) -> Result<Option<String>> {
         match key.to_ascii_lowercase().as_str() {
             "token" => Ok(self.token.replace(value)),
@@ -91,6 +109,9 @@ impl StoredConfig {
         }
     }
 
+    /// # Errors
+    ///
+    /// Returns [`Error::Config`] for unknown keys.
     pub fn unset(&mut self, key: &str) -> Result<Option<String>> {
         match key.to_ascii_lowercase().as_str() {
             "token" => Ok(self.token.take()),

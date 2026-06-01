@@ -29,6 +29,10 @@ impl Default for Params<'_> {
     }
 }
 
+/// # Errors
+///
+/// Returns [`crate::error::Error::InvalidDate`] when `from`/`to` fail validation,
+/// otherwise propagates HTTP / deserialization errors from [`Client::get_json`].
 pub async fn fetch(client: &Client, symbol: &str, params: &Params<'_>) -> Result<Value> {
     let symbol = normalize_symbol(symbol);
     let path = format!("/marketdetectors/{symbol}");

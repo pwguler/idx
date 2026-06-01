@@ -23,6 +23,9 @@ pub struct Client {
 }
 
 impl Client {
+    /// # Errors
+    ///
+    /// Fails if `base_url` is not a valid URL or the underlying reqwest client cannot be built.
     pub fn new(cfg: &Config) -> Result<Self> {
         let mut headers = HeaderMap::new();
         let mut auth = HeaderValue::from_str(&format!("Bearer {}", cfg.token))
@@ -67,6 +70,9 @@ impl Client {
     }
 
     /// Resolve a relative path against the configured base URL.
+    /// # Errors
+    ///
+    /// Fails if the joined URL is not valid.
     pub fn url(&self, path: &str) -> Result<Url> {
         // Strip leading '/' so `Url::join` treats the input as relative and appends
         // it under any base mount-point. (Combined with the trailing-slash invariant
@@ -78,6 +84,10 @@ impl Client {
     /// Issue a `GET` returning the raw JSON payload as [`serde_json::Value`].
     ///
     /// Retries transient errors (5xx, 429, network failures) with linear backoff.
+    /// # Errors
+    ///
+    /// Returns [`Error::Api`] for non-success status codes (after retries),
+    /// [`Error::Http`] for network failures, [`Error::Json`] for malformed payloads.
     pub async fn get_json<Q: Serialize + ?Sized>(&self, path: &str, query: &Q) -> Result<Value> {
         let url = self.url(path)?;
         with_backoff(self.max_retries, self.retry_base, |_| async {

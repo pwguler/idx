@@ -23,6 +23,9 @@ pub fn snap_year_limit(requested: u32) -> u32 {
         .unwrap_or(&10)
 }
 
+/// # Errors
+///
+/// Propagates HTTP / deserialization errors from [`Client::get_json`].
 pub async fn fetch(client: &Client, symbol: &str, year_limit: u32) -> Result<Value> {
     let symbol = normalize_symbol(symbol);
     let path = format!("/keystats/ratio/v1/{symbol}");

@@ -14,6 +14,7 @@ pub mod shareholders;
 pub mod trade_book;
 
 /// Validate a symbol: uppercase ASCII alphanumerics, 1..=8 chars.
+#[must_use]
 pub fn normalize_symbol(s: &str) -> String {
     s.trim().to_ascii_uppercase()
 }
@@ -21,6 +22,10 @@ pub fn normalize_symbol(s: &str) -> String {
 /// Validate `YYYY-MM-DD` strictly: format AND that month/day are real calendar values
 /// (rejects 2026-13-01, 2026-02-30, etc). Upstream is unforgiving; surface bad input
 /// at the call site instead of paying a round-trip to learn it was bad.
+///
+/// # Errors
+///
+/// Returns [`crate::error::Error::InvalidDate`] for malformed or impossible dates.
 pub fn validate_date(s: &str) -> crate::error::Result<&str> {
     let bytes = s.as_bytes();
     let shape_ok = bytes.len() == 10

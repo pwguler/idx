@@ -36,6 +36,9 @@ impl Config {
     /// and the stored YAML file, then delegates to [`Config::merge`]. Tests reach
     /// for `merge` directly so they can exercise precedence without touching the
     /// process environment.
+    /// # Errors
+    ///
+    /// Returns [`Error::MissingToken`] when no source provides a non-empty token.
     pub fn resolve(cli_token: Option<String>, cli_base_url: Option<String>) -> Result<Self> {
         let _ = dotenvy::dotenv();
         let env_token = env::var(TOKEN_ENV).ok();
@@ -50,6 +53,9 @@ impl Config {
     ///   4. Defaults
     ///
     /// Whitespace-only tokens are treated as missing.
+    /// # Errors
+    ///
+    /// Returns [`Error::MissingToken`] when no source provides a non-empty token.
     pub fn merge(
         cli_token: Option<String>,
         cli_base_url: Option<String>,

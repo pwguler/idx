@@ -14,6 +14,7 @@ use std::sync::Once;
 use stockbit_cli::api;
 use stockbit_cli::client::Client;
 use stockbit_cli::config::Config;
+use stockbit_cli::stored_config::StoredConfig;
 
 const SYMBOL: &str = "BBRI";
 
@@ -23,10 +24,16 @@ fn token_or_skip(test_name: &str) -> Option<String> {
     INIT.call_once(|| {
         let _ = dotenvy::dotenv();
     });
-    match std::env::var("STOCKBIT_BEARER_TOKEN") {
-        Ok(t) if !t.trim().is_empty() => Some(t),
+    // Mirror the CLI's resolution order: env var > ~/.stockbit-cli/config.yaml.
+    let token = std::env::var("STOCKBIT_BEARER_TOKEN")
+        .ok()
+        .or_else(|| StoredConfig::load().ok().and_then(|c| c.token));
+    match token {
+        Some(t) if !t.trim().is_empty() => Some(t),
         _ => {
-            eprintln!("[skip] {test_name}: STOCKBIT_BEARER_TOKEN not set");
+            eprintln!(
+                "[skip] {test_name}: no token in $STOCKBIT_BEARER_TOKEN or ~/.stockbit-cli/config.yaml"
+            );
             None
         }
     }

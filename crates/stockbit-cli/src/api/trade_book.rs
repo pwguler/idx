@@ -9,6 +9,10 @@ use crate::error::Result;
 pub const DEFAULT_GROUP_BY: &str = "GROUP_BY_TIME";
 pub const DEFAULT_TIME_INTERVAL: &str = "10m";
 
+/// # Errors
+///
+/// Returns [`crate::error::Error::InvalidDate`] when `date` fails validation,
+/// otherwise propagates HTTP / deserialization errors from [`Client::get_json`].
 pub async fn fetch(
     client: &Client,
     symbol: &str,

@@ -8,6 +8,9 @@ use crate::api::{info, profile};
 use crate::client::Client;
 use crate::error::Result;
 
+/// # Errors
+///
+/// Propagates errors from either underlying call.
 pub async fn fetch(client: &Client, symbol: &str) -> Result<Value> {
     let (info, profile) =
         tokio::try_join!(info::fetch(client, symbol), profile::fetch(client, symbol))?;
