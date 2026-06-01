@@ -13,20 +13,6 @@ use crate::error::Result;
 use crate::output::{print_json, Format};
 use crate::stored_config::StoredConfig;
 
-#[cfg(test)]
-mod tests {
-    use clap::CommandFactory;
-
-    use super::Cli;
-
-    #[test]
-    fn clap_definition_is_valid() {
-        // Catches subtle clap derive misconfigurations (default_value_t types,
-        // global-arg conflicts, duplicate flags) at test-time instead of runtime.
-        Cli::command().debug_assert();
-    }
-}
-
 #[derive(Debug, Parser)]
 #[command(
     name = "stockbit",

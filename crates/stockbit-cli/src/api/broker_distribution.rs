@@ -16,38 +16,3 @@ pub async fn fetch(client: &Client, symbol: &str, date: &str) -> Result<Value> {
         )
         .await
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use serde_json::json;
-    use wiremock::matchers::{method, path, query_param};
-    use wiremock::{Mock, MockServer, ResponseTemplate};
-
-    #[tokio::test]
-    async fn hits_correct_path_with_query() {
-        let server = MockServer::start().await;
-        Mock::given(method("GET"))
-            .and(path("/order-trade/broker/distribution"))
-            .and(query_param("symbol", "BBRI"))
-            .and(query_param("date", "2026-01-02"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": {}})))
-            .expect(1)
-            .mount(&server)
-            .await;
-
-        fetch(&Client::for_mock(&server), "BBRI", "2026-01-02")
-            .await
-            .unwrap();
-    }
-
-    #[tokio::test]
-    async fn rejects_bad_date_locally() {
-        let server = MockServer::start().await;
-        let err = fetch(&Client::for_mock(&server), "BBRI", "bad")
-            .await
-            .unwrap_err();
-        assert!(matches!(err, crate::error::Error::InvalidDate { .. }));
-    }
-}

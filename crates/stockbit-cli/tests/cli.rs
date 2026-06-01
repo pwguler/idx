@@ -1,14 +1,24 @@
 //! Hermetic CLI integration tests: spawn the compiled binary against a wiremock
-//! upstream and assert exit code + stdout JSON.
+//! upstream and assert exit code + stdout JSON. Plus a clap-definition sanity
+//! check that catches misconfigured derives at test time.
 
 use assert_cmd::Command;
+use clap::CommandFactory;
 use predicates::str::contains;
 use serde_json::json;
+use stockbit_cli::cli::Cli;
 use wiremock::matchers::{header, method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 fn bin() -> Command {
     Command::cargo_bin("stockbit").expect("binary built")
+}
+
+#[test]
+fn clap_definition_is_valid() {
+    // Catches subtle clap derive misconfigurations (default_value_t types,
+    // global-arg conflicts, duplicate flags) at test-time instead of runtime.
+    Cli::command().debug_assert();
 }
 
 #[tokio::test]

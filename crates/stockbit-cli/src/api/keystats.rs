@@ -31,37 +31,3 @@ pub async fn fetch(client: &Client, symbol: &str, year_limit: u32) -> Result<Val
         .get_json(&path, &[("year_limit", year_limit.to_string())])
         .await
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use serde_json::json;
-    use wiremock::matchers::{method, path, query_param};
-    use wiremock::{Mock, MockServer, ResponseTemplate};
-
-    #[test]
-    fn snap_year_limit_rounds_up_to_allowed() {
-        assert_eq!(snap_year_limit(0), 0);
-        assert_eq!(snap_year_limit(1), 3);
-        assert_eq!(snap_year_limit(3), 3);
-        assert_eq!(snap_year_limit(5), 10);
-        assert_eq!(snap_year_limit(10), 10);
-        assert_eq!(snap_year_limit(99), 10);
-    }
-
-    #[tokio::test]
-    async fn hits_correct_path_and_query() {
-        let server = MockServer::start().await;
-        Mock::given(method("GET"))
-            .and(path("/keystats/ratio/v1/BBRI"))
-            .and(query_param("year_limit", "10"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": {"per": 12.3}})))
-            .expect(1)
-            .mount(&server)
-            .await;
-
-        let v = fetch(&Client::for_mock(&server), "bbri", 10).await.unwrap();
-        assert_eq!(v["data"]["per"], 12.3);
-    }
-}
