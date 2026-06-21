@@ -1,3 +1,10 @@
+"""Fetch IDX official disclosures (keterbukaan informasi) into MongoDB.
+
+Source: idx.co.id announcements, scraped via headed Chromium (Playwright).
+Collection: `idxannouncement`. Note: IDX keeps a rolling ~3yr window, so older
+items may no longer be retrievable.
+"""
+
 import argparse
 import time
 from datetime import datetime, timedelta

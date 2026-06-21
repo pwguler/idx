@@ -1,3 +1,10 @@
+"""Shared helpers for the fetch scripts.
+
+Trading-date utilities (skipping weekends + holidays from data/holidays.txt) and
+the ticker universe loader (data/stocklist.txt). Imported by the fetchers; not a
+runnable script.
+"""
+
 import os
 from datetime import datetime, timedelta
 

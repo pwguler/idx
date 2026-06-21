@@ -1,3 +1,10 @@
+"""Fetch IDX news disclosures into MongoDB.
+
+Source: idx.co.id news announcements, scraped via headed Chromium (Playwright).
+Collection: `idxannouncement` (shared with official disclosures). Rolling ~3yr
+retention.
+"""
+
 import argparse
 import time
 from datetime import datetime, timedelta

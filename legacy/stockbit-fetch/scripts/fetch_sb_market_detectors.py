@@ -1,3 +1,11 @@
+"""Fetch Stockbit market detector / bandar detector into MongoDB.
+
+Source: Stockbit API (exodus.stockbit.com/marketdetectors). Needs BEARER_TOKEN
+in .env (see token_refresh.py). Collection: `marketdetectors`. NOTE: only the
+REGULER board is fetched (market_board=MARKET_BOARD_REGULER); tunai/nego boards
+are not collected.
+"""
+
 import argparse
 import os
 import time

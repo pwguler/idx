@@ -1,3 +1,10 @@
+"""Fetch IDX daily broker summary (per-broker buy/sell) into MongoDB.
+
+Source: idx.co.id trading-summary/broker-summary, scraped via headed Chromium
+(Playwright). Collection: `idxbrokersummary`. Supports --start-date/--end-date
+(API floor 2020-01-02).
+"""
+
 import argparse
 import time
 from datetime import datetime

@@ -1,3 +1,9 @@
+"""Fetch Stockbit key statistics / fundamentals into MongoDB.
+
+Source: Stockbit API (keystats/ratio). Needs BEARER_TOKEN in .env. Collection:
+`keystats` (PER, PBV, ROE, DER, etc.). Snapshot per run (--date), not a timeseries.
+"""
+
 import argparse
 import os
 import time

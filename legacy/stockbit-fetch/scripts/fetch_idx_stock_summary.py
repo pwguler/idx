@@ -1,3 +1,11 @@
+"""Fetch IDX daily stock summary (price, volume, foreign flow) into MongoDB.
+
+Source: idx.co.id trading-summary/stock-summary, scraped via a headed Chromium
+(Playwright). No Stockbit token needed. Collection: `idxstocksummary`
+(1 doc per stock per day). Supports backfill via --start-date/--end-date
+(API floor 2020-01-02).
+"""
+
 import argparse
 import time
 from datetime import datetime

@@ -1,3 +1,10 @@
+"""Fetch daily OHLCV from Yahoo Finance into MongoDB.
+
+Source: Yahoo Finance (yfinance), Indonesian tickers use the .JK suffix.
+Collection: `yfdaily` (1 doc per ticker per day; split/dividend adjusted,
+auto_adjust=True). Default range is the last 7 days; use --start-date for backfill.
+"""
+
 import argparse
 import logging
 import time

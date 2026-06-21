@@ -1,3 +1,10 @@
+"""Fetch analyst data from Yahoo Finance into MongoDB.
+
+Source: Yahoo Finance (yfinance): recommendations, price targets,
+upgrades/downgrades, earnings/revenue/EPS estimates. Collection: `yfanalyst`
+(1 doc per ticker, upserted). Snapshot per run.
+"""
+
 import argparse
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed

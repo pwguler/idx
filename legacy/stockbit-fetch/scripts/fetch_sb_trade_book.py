@@ -1,3 +1,9 @@
+"""Fetch Stockbit trade book (executions by time) into MongoDB.
+
+Source: Stockbit API. Needs BEARER_TOKEN in .env. Collection: `tradebook`.
+Supports --start-date/--end-date plus --group-by / --time-interval.
+"""
+
 import argparse
 import os
 import time

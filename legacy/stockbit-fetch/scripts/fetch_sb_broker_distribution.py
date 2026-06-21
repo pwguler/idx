@@ -1,3 +1,9 @@
+"""Fetch Stockbit broker distribution (smart-money flow by broker) into MongoDB.
+
+Source: Stockbit API. Needs BEARER_TOKEN in .env. Collection: `brokerdistribution`.
+Supports --start-date/--end-date for backfill.
+"""
+
 import argparse
 import os
 import time

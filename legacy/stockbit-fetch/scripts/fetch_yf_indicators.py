@@ -1,3 +1,10 @@
+"""Compute technical indicators from yfdaily into MongoDB.
+
+Derived only — reads the `yfdaily` collection (no Yahoo call) and computes
+SMA/EMA/MACD/RSI/Bollinger/ATR/volume ratios per ticker. Collection:
+`yfindicators`. Run AFTER fetch_yf_daily.py.
+"""
+
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 

@@ -1,3 +1,9 @@
+"""Fetch Stockbit company profiles into MongoDB.
+
+Source: Stockbit API. Needs BEARER_TOKEN in .env. Collection: `stockprofiles`
+(company info, sector, shareholder trends). Snapshot per run (--date).
+"""
+
 import argparse
 import os
 import time

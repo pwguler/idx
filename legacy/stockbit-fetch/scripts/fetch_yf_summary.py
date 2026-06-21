@@ -1,3 +1,9 @@
+"""Fetch fundamentals & company profile from Yahoo Finance into MongoDB.
+
+Source: Yahoo Finance (yfinance) ticker .info. Collection: `yfsummary`
+(1 doc per ticker, upserted). Snapshot per run.
+"""
+
 import argparse
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
