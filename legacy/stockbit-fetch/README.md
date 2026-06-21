@@ -74,8 +74,6 @@ Check status: `python scripts/token_refresh.py --show`
 # date range (for scripts that support it)
 ./scripts/run_all.sh --only brokerdist --start-date 2026-01-01 --end-date 2026-01-20
 
-# weekday-only daily runner (skips weekends + holidays in data/holidays.txt)
-./scripts/run_daily.sh
 
 # historical backfill (newest-year-first, resumable)
 ./scripts/backfill.sh --source stockbit --from 2016 --to 2024 --workers 5
