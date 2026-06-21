@@ -53,8 +53,10 @@ DevTools → Application → Cookies → `stockbit.com` → cookie `credentialSt
 python scripts/token_refresh.py --seed-refresh '<refresh_jwt>'
 ```
 
-This stores tokens in `.sb_tokens.json` (gitignored) and mirrors the access
-token into `.env` `BEARER_TOKEN`. Schedule a daily refresh:
+This auto-creates `.sb_tokens.json` (access + rotating refresh token) and
+mirrors the access token into `.env` `BEARER_TOKEN`. Both are secrets and are
+gitignored — never commit them, there is no `.example` to fill in by hand.
+Schedule a daily refresh:
 
 ```cron
 0 8 * * * cd /path/to/stockbit-fetch && python scripts/token_refresh.py >> /tmp/token_refresh.log 2>&1
@@ -87,9 +89,11 @@ Check status: `python scripts/token_refresh.py --show`
 ## Layout
 
 ```
-data/holidays.txt     # IDX holidays (skipped by the runners)
-data/stocklist.txt      # tickers to fetch
-scripts/          # fetch scripts + lib.py + token_refresh.py + runners
+data/holidays.txt    # IDX holidays (skipped by the runners)
+data/stocklist.txt   # tickers to fetch
+scripts/             # fetch scripts + lib.py + token_refresh.py + runners
+.env                 # secrets (from .env.example) — gitignored
+.sb_tokens.json      # auto-created by token_refresh.py — gitignored
 ```
 
 ## Disclaimer
