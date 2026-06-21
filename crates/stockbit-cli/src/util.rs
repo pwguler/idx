@@ -1,5 +1,23 @@
 //! Small crate-private helpers shared across clients.
 
+use url::Url;
+
+use crate::error::Result;
+
+/// Parse `s` as a URL, guaranteeing a trailing slash so relative `Url::join`
+/// appends under (rather than replaces) the final path segment.
+///
+/// # Errors
+///
+/// Returns [`crate::error::Error::Url`] if `s` is not a valid URL.
+pub(crate) fn with_trailing_slash(s: &str) -> Result<Url> {
+    if s.ends_with('/') {
+        Ok(Url::parse(s)?)
+    } else {
+        Ok(Url::parse(&format!("{s}/"))?)
+    }
+}
+
 /// Truncate a string to at most `max` characters (not bytes), appending `…` when
 /// cut. Multibyte-safe: never splits a UTF-8 scalar. Used to bound error bodies.
 #[must_use]

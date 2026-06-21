@@ -34,14 +34,6 @@ pub struct IdxClient {
     retry_base: Duration,
 }
 
-fn ensure_trailing_slash(s: &str) -> Result<Url> {
-    if s.ends_with('/') {
-        Ok(Url::parse(s)?)
-    } else {
-        Ok(Url::parse(&format!("{s}/"))?)
-    }
-}
-
 impl IdxClient {
     /// Build a client for the real IDX host with a `cf_clearance`-bearing cookie.
     ///
@@ -66,7 +58,8 @@ impl IdxClient {
         );
         headers.insert(
             USER_AGENT,
-            HeaderValue::from_str(user_agent).map_err(|_| Error::MissingIdxCookie)?,
+            HeaderValue::from_str(user_agent)
+                .map_err(|e| Error::Config(format!("invalid --idx-user-agent: {e}")))?,
         );
         headers.insert(REFERER, HeaderValue::from_static("https://www.idx.co.id/"));
         let mut cookie_val = HeaderValue::from_str(cookie).map_err(|_| Error::MissingIdxCookie)?;
@@ -80,7 +73,7 @@ impl IdxClient {
 
         Ok(Self {
             inner,
-            base: ensure_trailing_slash(base)?,
+            base: crate::util::with_trailing_slash(base)?,
             max_retries: 3,
             retry_base: Duration::from_secs(2),
         })
@@ -128,7 +121,8 @@ impl IdxClient {
     }
 
     /// `GET /primary/TradingSummary/{endpoint}` with the standard paging params and
-    /// optional `date` (YYYYMMDD).
+    /// optional `date` — `YYYY-MM-DD` (already validated by the caller), normalized
+    /// to `YYYYMMDD` for the wire.
     async fn trading_summary(&self, endpoint: &str, date: Option<&str>) -> Result<Value> {
         let path = format!("/primary/TradingSummary/{endpoint}");
         let mut query: Vec<(&str, &str)> = vec![("length", "9999"), ("start", "0")];

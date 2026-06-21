@@ -73,7 +73,7 @@ stockbit idx-stock-summary    [--date YYYY-MM-DD]               # price/volume/f
 stockbit idx-broker-summary   [--date YYYY-MM-DD]               # per-broker buy/sell
 ```
 
-Global flags: `--token`, `--base-url`, `--pretty`/`-p`, `-v`/`-vv`/`-vvv`.
+Global flags: `--token`, `--base-url`, `--idx-cookie`, `--idx-user-agent`, `--pretty`/`-p`, `-v`/`-vv`/`-vvv`.
 
 `yf-daily` and `yf-quote` use Yahoo's open chart API. `yf-summary` and `yf-analyst`
 hit `quoteSummary`, which requires a cookie + crumb handshake — the CLI performs it

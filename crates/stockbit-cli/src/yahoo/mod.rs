@@ -43,14 +43,6 @@ pub struct YahooClient {
     retry_base: Duration,
 }
 
-fn with_trailing_slash(s: &str) -> Result<Url> {
-    if s.ends_with('/') {
-        Ok(Url::parse(s)?)
-    } else {
-        Ok(Url::parse(&format!("{s}/"))?)
-    }
-}
-
 impl YahooClient {
     /// Build a client pointing at the real Yahoo Finance hosts.
     ///
@@ -79,9 +71,9 @@ impl YahooClient {
 
         Ok(Self {
             inner,
-            chart_base: with_trailing_slash(chart_base)?,
-            query_base: with_trailing_slash(query_base)?,
-            cookie_base: with_trailing_slash(cookie_base)?,
+            chart_base: crate::util::with_trailing_slash(chart_base)?,
+            query_base: crate::util::with_trailing_slash(query_base)?,
+            cookie_base: crate::util::with_trailing_slash(cookie_base)?,
             max_retries: 3,
             retry_base: Duration::from_secs(2),
         })
