@@ -1,5 +1,5 @@
-//! Clap-derive command surface. Each subcommand maps to exactly one Stockbit endpoint
-//! and prints its JSON payload to stdout.
+//! Clap-derive command surface. Each subcommand maps to exactly one Stockbit or
+//! Yahoo endpoint and prints its JSON payload to stdout.
 
 use std::process::ExitCode;
 
@@ -10,19 +10,25 @@ use crate::api;
 use crate::client::Client;
 use crate::config::{Config, TOKEN_ENV};
 use crate::error::Result;
+use crate::idx::{self, IdxClient};
 use crate::output::{Format, print_json};
 use crate::stored_config::StoredConfig;
+use crate::yahoo::{self, YahooClient};
 
 #[derive(Debug, Parser)]
 #[command(
     name = "stockbit",
     bin_name = "stockbit",
     version,
-    about = "CLI wrapper around the Stockbit (exodus) REST API.",
+    about = "CLI for Stockbit (exodus), Yahoo Finance, and IDX market data.",
     long_about = "Writes raw upstream JSON to stdout — pipe into `jq` or redirect to a file.\n\n\
-                  Auth (resolved in order): --token flag, $STOCKBIT_BEARER_TOKEN env var, \
+                  Stockbit auth (resolved in order): --token flag, $STOCKBIT_BEARER_TOKEN env var, \
                   ~/.stockbit-cli/config.yaml. Manage the stored config with \
-                  `stockbit config set token <VALUE>`."
+                  `stockbit config set token <VALUE>`.\n\n\
+                  Yahoo commands (`yf-*`) need no token — `yf-summary`/`yf-analyst` perform \
+                  Yahoo's cookie+crumb handshake automatically.\n\n\
+                  IDX commands (`idx-*`) need no token or cookie — they pass Cloudflare \
+                  bot-fight via Chrome TLS impersonation (--idx-cookie is an optional extra)."
 )]
 pub struct Cli {
     /// Bearer token. Defaults to `$STOCKBIT_BEARER_TOKEN` or value in `.env`.
@@ -32,6 +38,11 @@ pub struct Cli {
     /// Override the API base URL (default: <https://exodus.stockbit.com>).
     #[arg(long, global = true)]
     pub base_url: Option<String>,
+
+    /// Optional extra cookie for `idx-*` commands (rarely needed — IDX works
+    /// cookie-less via Chrome TLS impersonation).
+    #[arg(long, global = true, env = "IDX_COOKIE", hide_env_values = true)]
+    pub idx_cookie: Option<String>,
 
     /// Pretty-print JSON output.
     #[arg(long, short = 'p', global = true)]
@@ -98,11 +109,65 @@ pub enum Command {
     },
     /// Shareholder composition snapshots across reporting periods.
     Shareholders { symbol: String },
+    /// Yahoo Finance daily OHLCV (open chart API — no token needed).
+    YfDaily {
+        symbol: String,
+        /// Start date YYYY-MM-DD (uses an explicit window; `to` defaults to now).
+        #[arg(long)]
+        from: Option<String>,
+        /// End date YYYY-MM-DD (only used with `--from`).
+        #[arg(long)]
+        to: Option<String>,
+        /// Range when no `--from` is given (e.g. `5d`, `1mo`, `1y`, `max`).
+        #[arg(long, default_value = crate::yahoo::daily::DEFAULT_RANGE)]
+        range: String,
+    },
+    /// Yahoo Finance latest quote snapshot (open chart API — no token needed).
+    YfQuote { symbol: String },
+    /// Yahoo Finance fundamentals & profile (performs a Yahoo crumb handshake).
+    YfSummary { symbol: String },
+    /// Yahoo Finance analyst data: recommendations, targets, estimates (crumb handshake).
+    YfAnalyst { symbol: String },
+    /// IDX daily stock summary (price/volume/foreign flow). Needs an IDX cookie.
+    IdxStockSummary {
+        /// Trading date YYYY-MM-DD (latest trading day if omitted).
+        #[arg(long)]
+        date: Option<String>,
+    },
+    /// IDX daily broker summary (per-broker buy/sell). Needs an IDX cookie.
+    IdxBrokerSummary {
+        /// Trading date YYYY-MM-DD (latest trading day if omitted).
+        #[arg(long)]
+        date: Option<String>,
+    },
     /// Manage the on-disk config at `~/.stockbit-cli/config.yaml`.
     Config {
         #[command(subcommand)]
         action: ConfigAction,
     },
+}
+
+impl Command {
+    /// Yahoo commands hit a different service and need no Stockbit token.
+    #[must_use]
+    fn is_yahoo(&self) -> bool {
+        matches!(
+            self,
+            Self::YfDaily { .. }
+                | Self::YfQuote { .. }
+                | Self::YfSummary { .. }
+                | Self::YfAnalyst { .. }
+        )
+    }
+
+    /// IDX commands need a `cf_clearance` cookie, not a Stockbit token.
+    #[must_use]
+    fn is_idx(&self) -> bool {
+        matches!(
+            self,
+            Self::IdxStockSummary { .. } | Self::IdxBrokerSummary { .. }
+        )
+    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -140,9 +205,37 @@ async fn run_inner(cli: Cli) -> Result<()> {
         return run_config(action, fmt);
     }
 
-    let cfg = Config::resolve(cli.token.clone(), cli.base_url.clone())?;
-    let client = Client::new(&cfg)?;
-    let value = dispatch(&client, cli.command).await?;
+    // Yahoo commands use a separate, token-less client; everything else goes
+    // through the authenticated Stockbit client.
+    let value = if cli.command.is_yahoo() {
+        // Optional base override (set every Yahoo host to one URL) — handy for a
+        // proxy/mirror, and used by the hermetic integration tests.
+        let client = match std::env::var("STOCKBIT_YF_BASE_URL")
+            .ok()
+            .filter(|s| !s.is_empty())
+        {
+            Some(base) => YahooClient::with_bases(&base, &base, &base)?,
+            None => YahooClient::new()?,
+        };
+        dispatch_yahoo(&client, cli.command).await?
+    } else if cli.command.is_idx() {
+        // IDX works token-less and cookie-less via Chrome TLS impersonation; an
+        // optional cookie may be appended. Base overridable via STOCKBIT_IDX_BASE_URL
+        // (proxy/mirror + hermetic tests).
+        let cookie = cli.idx_cookie.clone();
+        let base = std::env::var("STOCKBIT_IDX_BASE_URL")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let client = match base {
+            Some(b) => IdxClient::with_base(&b, cookie.as_deref())?,
+            None => IdxClient::with_cookie(cookie.as_deref())?,
+        };
+        dispatch_idx(&client, cli.command).await?
+    } else {
+        let cfg = Config::resolve(cli.token.clone(), cli.base_url.clone())?;
+        let client = Client::new(&cfg)?;
+        dispatch(&client, cli.command).await?
+    };
     print_json(&value, fmt)
 }
 
@@ -223,7 +316,43 @@ async fn dispatch(client: &Client, cmd: Command) -> Result<Value> {
             .unwrap_or_else(|| {
                 json!({"data": null, "_note": "no shareholder composition available for symbol"})
             })),
+        Command::YfDaily { .. }
+        | Command::YfQuote { .. }
+        | Command::YfSummary { .. }
+        | Command::YfAnalyst { .. } => {
+            unreachable!("yahoo commands are routed to dispatch_yahoo in run_inner")
+        }
+        Command::IdxStockSummary { .. } | Command::IdxBrokerSummary { .. } => {
+            unreachable!("idx commands are routed to dispatch_idx in run_inner")
+        }
         Command::Config { .. } => unreachable!("`config` is handled in run_inner before dispatch"),
+    }
+}
+
+async fn dispatch_yahoo(client: &YahooClient, cmd: Command) -> Result<Value> {
+    match cmd {
+        Command::YfDaily {
+            symbol,
+            from,
+            to,
+            range,
+        } => yahoo::daily::fetch(client, &symbol, from.as_deref(), to.as_deref(), &range).await,
+        Command::YfQuote { symbol } => yahoo::quote::fetch(client, &symbol).await,
+        Command::YfSummary { symbol } => yahoo::summary::fetch(client, &symbol).await,
+        Command::YfAnalyst { symbol } => yahoo::analyst::fetch(client, &symbol).await,
+        _ => unreachable!("dispatch_yahoo only receives yahoo commands"),
+    }
+}
+
+async fn dispatch_idx(client: &IdxClient, cmd: Command) -> Result<Value> {
+    match cmd {
+        Command::IdxStockSummary { date } => {
+            idx::stock_summary::fetch(client, date.as_deref()).await
+        }
+        Command::IdxBrokerSummary { date } => {
+            idx::broker_summary::fetch(client, date.as_deref()).await
+        }
+        _ => unreachable!("dispatch_idx only receives idx commands"),
     }
 }
 

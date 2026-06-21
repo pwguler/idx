@@ -219,3 +219,191 @@ async fn shareholders_404_surfaces_null_marker() {
     .await
     .unwrap();
 }
+
+#[tokio::test]
+async fn yf_daily_works_without_any_token() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v8/finance/chart/BBRI.JK"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "chart": {"error": null, "result": [{
+                "meta": {"gmtoffset": 25200},
+                "timestamp": [1_609_459_200_i64],
+                "indicators": {"quote": [{
+                    "open":[4000.0],"high":[4100.0],"low":[3950.0],"close":[4050.0],"volume":[1000]
+                }], "adjclose": [{"adjclose":[4050.0]}]}
+            }]}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let uri = server.uri();
+    tokio::task::spawn_blocking(move || {
+        // No --token, no env token: yahoo must not require Stockbit auth.
+        bin()
+            .env_remove("STOCKBIT_BEARER_TOKEN")
+            .env("STOCKBIT_YF_BASE_URL", &uri)
+            .args(["yf-daily", "bbri"])
+            .assert()
+            .success()
+            .stdout(contains("\"date\":\"2021-01-01\""))
+            .stdout(contains("\"symbol\":\"BBRI.JK\""));
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn yf_summary_runs_full_crumb_handshake_through_binary() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/v1/test/getcrumb"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("cr-1"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/v10/finance/quoteSummary/BBRI.JK"))
+        .and(query_param("crumb", "cr-1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "quoteSummary": {"error": null, "result": [{"financialData": {"currentPrice": 4020.0}}]}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let uri = server.uri();
+    tokio::task::spawn_blocking(move || {
+        bin()
+            .env_remove("STOCKBIT_BEARER_TOKEN")
+            .env("STOCKBIT_YF_BASE_URL", &uri)
+            .args(["yf-summary", "bbri"])
+            .assert()
+            .success()
+            .stdout(contains("\"currentPrice\":4020"));
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn yf_quote_works_without_token() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v8/finance/chart/BBRI.JK"))
+        .and(query_param("range", "1d"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "chart": {"error": null, "result": [{"meta": {"regularMarketPrice": 4020.0}}]}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let uri = server.uri();
+    tokio::task::spawn_blocking(move || {
+        bin()
+            .env_remove("STOCKBIT_BEARER_TOKEN")
+            .env("STOCKBIT_YF_BASE_URL", &uri)
+            .args(["yf-quote", "bbri"])
+            .assert()
+            .success()
+            .stdout(contains("\"regularMarketPrice\":4020"));
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn yf_analyst_runs_crumb_handshake_through_binary() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/v1/test/getcrumb"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("cr-2"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/v10/finance/quoteSummary/BBRI.JK"))
+        .and(query_param("crumb", "cr-2"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "quoteSummary": {"error": null, "result": [{"recommendationTrend": {"trend": []}}]}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let uri = server.uri();
+    tokio::task::spawn_blocking(move || {
+        bin()
+            .env_remove("STOCKBIT_BEARER_TOKEN")
+            .env("STOCKBIT_YF_BASE_URL", &uri)
+            .args(["yf-analyst", "bbri"])
+            .assert()
+            .success()
+            .stdout(contains("recommendationTrend"));
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn idx_stock_summary_works_without_token_or_cookie() {
+    let server = MockServer::start().await;
+    // No cookie matcher: IDX works cookie-less via TLS impersonation.
+    Mock::given(method("GET"))
+        .and(path("/primary/TradingSummary/GetStockSummary"))
+        .and(query_param("date", "20260619"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": [{"StockCode": "BBRI"}]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let uri = server.uri();
+    tokio::task::spawn_blocking(move || {
+        bin()
+            .env_remove("STOCKBIT_BEARER_TOKEN")
+            .env_remove("IDX_COOKIE")
+            .env("STOCKBIT_IDX_BASE_URL", &uri)
+            .args(["idx-stock-summary", "--date", "2026-06-19"])
+            .assert()
+            .success()
+            .stdout(contains("\"StockCode\":\"BBRI\""));
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn idx_optional_cookie_is_forwarded() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/primary/TradingSummary/GetBrokerSummary"))
+        .and(header("cookie", "cf_clearance=zzz"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": []})))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let uri = server.uri();
+    tokio::task::spawn_blocking(move || {
+        bin()
+            .env_remove("STOCKBIT_BEARER_TOKEN")
+            .env("STOCKBIT_IDX_BASE_URL", &uri)
+            .args(["--idx-cookie", "cf_clearance=zzz", "idx-broker-summary"])
+            .assert()
+            .success();
+    })
+    .await
+    .unwrap();
+}

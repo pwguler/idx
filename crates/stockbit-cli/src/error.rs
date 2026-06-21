@@ -8,8 +8,27 @@ pub enum Error {
     #[error("HTTP request failed: {0}")]
     Http(#[from] reqwest::Error),
 
+    #[error("IDX HTTP request failed: {0}")]
+    IdxHttp(#[from] wreq::Error),
+
     #[error("Stockbit API returned status {status}: {body}")]
     Api { status: u16, body: String },
+
+    #[error("Yahoo Finance returned status {status}: {body}")]
+    Yahoo { status: u16, body: String },
+
+    #[error("could not obtain a Yahoo crumb (auth handshake failed)")]
+    Crumb,
+
+    #[error("IDX returned status {status}: {body}")]
+    Idx { status: u16, body: String },
+
+    #[error(
+        "IDX blocked the request with a Cloudflare challenge despite TLS impersonation. \
+         The bot-fight fingerprint may have changed — try updating the emulation profile, \
+         or pass a fresh browser `cf_clearance` cookie via --idx-cookie."
+    )]
+    IdxChallenge,
 
     #[error("invalid URL: {0}")]
     Url(#[from] url::ParseError),
@@ -37,8 +56,11 @@ impl Error {
     #[must_use]
     pub fn is_transient(&self) -> bool {
         match self {
-            Self::Api { status, .. } => *status == 429 || (500..600).contains(status),
+            Self::Api { status, .. } | Self::Yahoo { status, .. } | Self::Idx { status, .. } => {
+                *status == 429 || (500..600).contains(status)
+            }
             Self::Http(e) => e.is_timeout() || e.is_connect() || e.is_request(),
+            Self::IdxHttp(e) => e.is_timeout() || e.is_connect(),
             _ => false,
         }
     }

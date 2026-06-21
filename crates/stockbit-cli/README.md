@@ -1,6 +1,8 @@
 # stockbit-cli
 
-CLI wrapping the [Stockbit](https://stockbit.com) `exodus` REST API. Prints raw JSON to stdout.
+CLI for [Stockbit](https://stockbit.com)'s `exodus` REST API, [Yahoo Finance](https://finance.yahoo.com), and [IDX](https://www.idx.co.id) trading summaries. Prints raw JSON to stdout.
+
+Stockbit commands need a bearer token; Yahoo (`yf-*`) and IDX (`idx-*`) commands need none.
 
 ## Install
 
@@ -13,7 +15,9 @@ git clone https://github.com/gitshrl/stockbit-cli.git
 cd stockbit-cli && cargo install --path . --locked
 ```
 
-Requires Rust 1.96 (pinned in `rust-toolchain.toml`).
+Requires Rust 1.96 (pinned in `rust-toolchain.toml`). The IDX TLS-impersonation
+dependency (`wreq` → BoringSSL) needs **`cmake`** and **`libclang`** at build time
+(e.g. `apt install cmake libclang-dev`). Runtime needs neither.
 
 ## Authentication
 
@@ -59,9 +63,44 @@ stockbit broker-distribution  <SYMBOL> --date YYYY-MM-DD
 stockbit trade-book           <SYMBOL> --date YYYY-MM-DD
                                        [--group-by G] [--time-interval 10m]
 stockbit shareholders         <SYMBOL>
+
+# Yahoo Finance (no token required)
+stockbit yf-daily             <SYMBOL> [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--range 1mo]
+stockbit yf-quote             <SYMBOL>                           # latest snapshot (chart meta)
+stockbit yf-summary           <SYMBOL>                           # fundamentals & profile
+stockbit yf-analyst           <SYMBOL>                           # recommendations, targets, estimates
+
+# IDX trading summaries (no token/cookie needed — Chrome TLS impersonation)
+stockbit idx-stock-summary    [--date YYYY-MM-DD]               # price/volume/foreign flow
+stockbit idx-broker-summary   [--date YYYY-MM-DD]               # per-broker buy/sell
 ```
 
-Global flags: `--token`, `--base-url`, `--pretty`/`-p`, `-v`/`-vv`/`-vvv`.
+Global flags: `--token`, `--base-url`, `--idx-cookie`, `--pretty`/`-p`, `-v`/`-vv`/`-vvv`.
+
+`yf-daily` and `yf-quote` use Yahoo's open chart API. `yf-summary` and `yf-analyst`
+hit `quoteSummary`, which requires a cookie + crumb handshake — the CLI performs it
+automatically (mirroring the `yfinance` library). Symbols are auto-suffixed with `.JK`
+(idempotent — passing `BBRI.JK` is fine).
+
+Set `STOCKBIT_YF_BASE_URL` to point every Yahoo host at one base URL (handy for a
+proxy/mirror).
+
+### IDX commands (Cloudflare)
+
+`idx.co.id` is behind Cloudflare bot-fight, which blocks by TLS/JA3 + HTTP2
+fingerprint. The CLI impersonates a real Chrome fingerprint (via `wreq`), so
+`idx-*` works **with no token, no cookie, and no browser** — from any host/IP
+(including a server):
+
+```bash
+stockbit idx-stock-summary --date 2026-06-19
+stockbit idx-broker-summary
+```
+
+`--idx-cookie` / `IDX_COOKIE` is **optional** (appends an extra cookie; rarely
+needed). If the fingerprint ever stops passing, the CLI returns a clear
+`IdxChallenge` error (not a parse failure) — update the emulation profile or pass a
+fresh `cf_clearance` cookie. `STOCKBIT_IDX_BASE_URL` overrides the host (proxy/mirror).
 
 ### Examples
 
@@ -81,6 +120,14 @@ stockbit trade-book BBRI --date 2026-05-26 > bbri-tb.json
 for s in BBRI BBCA BMRI; do
   stockbit emitten "$s" > "data/$s.json"
 done
+
+# Yahoo daily OHLCV for a window (no token), closes piped through jq
+stockbit yf-daily BBRI --from 2026-01-01 --to 2026-03-31 \
+  | jq '.daily[] | {date, close}'
+
+# Latest snapshot + fundamentals (crumb handshake is automatic)
+stockbit yf-quote BBRI
+stockbit -p yf-summary BBRI
 ```
 
 ## Development
@@ -88,12 +135,12 @@ done
 ```bash
 cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
-cargo test                       # unit + hermetic CLI tests (no network)
+cargo test                       # unit + hermetic CLI/Yahoo tests (no network)
 cargo test --test stockbit       # end-to-end against real Stockbit
-                                 # (skipped automatically if no token)
+                                 # (skips when no token; needs a VALID token to pass)
 ```
 
-The end-to-end tests use [`wiremock`](https://crates.io/crates/wiremock) for the unit suite and hit real `exodus.stockbit.com` for the integration suite (gated on `STOCKBIT_BEARER_TOKEN`).
+The hermetic suites (`api`, `cli`, `yahoo`, …) use [`wiremock`](https://crates.io/crates/wiremock) and never touch the network. Only `tests/stockbit.rs` hits real `exodus.stockbit.com`: it skips when `STOCKBIT_BEARER_TOKEN` (or the stored config) has no token, but a **stale** token makes it run and fail with `401` — run `STOCKBIT_BEARER_TOKEN= cargo test` to force-skip it.
 
 ## Upstream quirks worth knowing
 
@@ -102,3 +149,5 @@ The end-to-end tests use [`wiremock`](https://crates.io/crates/wiremock) for the
 - `shareholders` returns 404 for ETFs and suspended issues; the CLI surfaces this as `{"data": null, "_note": "..."}` rather than an error.
 - Retries on `5xx`, `429`, network timeouts; never on `4xx` (apart from the 404 case above).
 - IDX trading days only: avoid weekends and Indonesian public holidays for date-bounded endpoints.
+- Yahoo `yf-daily` returns Yahoo's **raw** OHLCV plus a separate `adjclose` (the only split/dividend-adjusted field); dates are rendered in the exchange timezone via `meta.gmtoffset`.
+- Yahoo `quoteSummary` (used by `yf-summary`/`yf-analyst`) can rate-limit or change its crumb scheme; failures surface as `Yahoo`/`crumb` errors rather than silent empties.

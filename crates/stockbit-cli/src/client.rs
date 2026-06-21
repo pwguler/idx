@@ -99,46 +99,10 @@ impl Client {
                 let body = resp.text().await.unwrap_or_default();
                 Err(Error::Api {
                     status: status.as_u16(),
-                    body: truncate(&body, 500),
+                    body: crate::util::truncate(&body, 500),
                 })
             }
         })
         .await
-    }
-}
-
-fn truncate(s: &str, max: usize) -> String {
-    if s.len() <= max {
-        s.to_string()
-    } else {
-        let cut = s.char_indices().nth(max).map_or(s.len(), |(i, _)| i);
-        format!("{}…", &s[..cut])
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    // Inline tests are kept ONLY for private helpers (here: `truncate`).
-    // Public-API tests (Client::new / get_json / url / retries) live in tests/client.rs.
-    use super::truncate;
-
-    #[test]
-    fn truncate_returns_unchanged_when_under_limit() {
-        assert_eq!(truncate("hi", 10), "hi");
-    }
-
-    #[test]
-    fn truncate_uses_ellipsis_when_over_limit() {
-        let out = truncate("0123456789abcd", 5);
-        assert!(out.ends_with('…'));
-        assert!(out.starts_with("01234"));
-    }
-
-    #[test]
-    fn truncate_handles_multibyte_boundary_safely() {
-        // grapheme that straddles the byte cut point shouldn't panic
-        let s = "héllo wörld";
-        let _ = truncate(s, 4);
-        let _ = truncate(s, 6);
     }
 }
