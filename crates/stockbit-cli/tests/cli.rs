@@ -354,3 +354,53 @@ async fn yf_analyst_runs_crumb_handshake_through_binary() {
     .await
     .unwrap();
 }
+
+#[tokio::test]
+async fn idx_stock_summary_works_with_cookie_no_token() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/primary/TradingSummary/GetStockSummary"))
+        .and(query_param("date", "20260619"))
+        .and(header("cookie", "cf_clearance=zzz"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": [{"StockCode": "BBRI"}]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let uri = server.uri();
+    tokio::task::spawn_blocking(move || {
+        bin()
+            .env_remove("STOCKBIT_BEARER_TOKEN")
+            .env_remove("IDX_USER_AGENT")
+            .env("STOCKBIT_IDX_BASE_URL", &uri)
+            .args([
+                "--idx-cookie",
+                "cf_clearance=zzz",
+                "idx-stock-summary",
+                "--date",
+                "2026-06-19",
+            ])
+            .assert()
+            .success()
+            .stdout(contains("\"StockCode\":\"BBRI\""));
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn idx_without_cookie_errors_clearly() {
+    tokio::task::spawn_blocking(|| {
+        bin()
+            .env_remove("STOCKBIT_BEARER_TOKEN")
+            .env_remove("IDX_COOKIE")
+            .args(["idx-broker-summary"])
+            .assert()
+            .failure()
+            .stderr(contains("missing IDX cookie"));
+    })
+    .await
+    .unwrap();
+}

@@ -17,6 +17,21 @@ pub enum Error {
     #[error("could not obtain a Yahoo crumb (auth handshake failed)")]
     Crumb,
 
+    #[error("IDX returned status {status}: {body}")]
+    Idx { status: u16, body: String },
+
+    #[error(
+        "IDX blocked the request with a Cloudflare challenge. Provide a fresh `cf_clearance` cookie \
+         (from a browser that solved the challenge) via --idx-cookie or IDX_COOKIE, matching the \
+         same User-Agent (--idx-user-agent / IDX_USER_AGENT) and originating IP."
+    )]
+    IdxChallenge,
+
+    #[error(
+        "missing IDX cookie: pass --idx-cookie or set IDX_COOKIE (needs a browser cf_clearance)"
+    )]
+    MissingIdxCookie,
+
     #[error("invalid URL: {0}")]
     Url(#[from] url::ParseError),
 
@@ -43,7 +58,7 @@ impl Error {
     #[must_use]
     pub fn is_transient(&self) -> bool {
         match self {
-            Self::Api { status, .. } | Self::Yahoo { status, .. } => {
+            Self::Api { status, .. } | Self::Yahoo { status, .. } | Self::Idx { status, .. } => {
                 *status == 429 || (500..600).contains(status)
             }
             Self::Http(e) => e.is_timeout() || e.is_connect() || e.is_request(),

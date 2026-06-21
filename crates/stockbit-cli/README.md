@@ -1,8 +1,8 @@
 # stockbit-cli
 
-CLI for [Stockbit](https://stockbit.com)'s `exodus` REST API and [Yahoo Finance](https://finance.yahoo.com). Prints raw JSON to stdout.
+CLI for [Stockbit](https://stockbit.com)'s `exodus` REST API, [Yahoo Finance](https://finance.yahoo.com), and [IDX](https://www.idx.co.id) trading summaries. Prints raw JSON to stdout.
 
-Stockbit commands need a bearer token; Yahoo commands (`yf-*`) need none.
+Stockbit commands need a bearer token; Yahoo commands (`yf-*`) need none; IDX commands (`idx-*`) need a browser `cf_clearance` cookie (Cloudflare).
 
 ## Install
 
@@ -67,6 +67,10 @@ stockbit yf-daily             <SYMBOL> [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--
 stockbit yf-quote             <SYMBOL>                           # latest snapshot (chart meta)
 stockbit yf-summary           <SYMBOL>                           # fundamentals & profile
 stockbit yf-analyst           <SYMBOL>                           # recommendations, targets, estimates
+
+# IDX trading summaries (needs --idx-cookie / IDX_COOKIE with a cf_clearance)
+stockbit idx-stock-summary    [--date YYYY-MM-DD]               # price/volume/foreign flow
+stockbit idx-broker-summary   [--date YYYY-MM-DD]               # per-broker buy/sell
 ```
 
 Global flags: `--token`, `--base-url`, `--pretty`/`-p`, `-v`/`-vv`/`-vvv`.
@@ -78,6 +82,27 @@ automatically (mirroring the `yfinance` library). Symbols are auto-suffixed with
 
 Set `STOCKBIT_YF_BASE_URL` to point every Yahoo host at one base URL (handy for a
 proxy/mirror).
+
+### IDX commands (Cloudflare)
+
+`idx.co.id` is behind Cloudflare, so there is no token-only access. Grab a
+`cf_clearance` cookie from a browser that has loaded idx.co.id (DevTools →
+Application → Cookies), then:
+
+```bash
+stockbit --idx-cookie 'cf_clearance=…; …' idx-stock-summary --date 2026-06-19
+# or: export IDX_COOKIE='cf_clearance=…'
+```
+
+Hard constraints (Cloudflare, not the CLI):
+- The cookie is **IP-bound** — run the command from the **same machine/IP** as the
+  browser that earned it (a server with a different IP will get a challenge).
+- Set `--idx-user-agent` / `IDX_USER_AGENT` to **match that browser's UA** (the
+  clearance is UA-bound). Defaults to a desktop-Chrome UA.
+- `cf_clearance` expires within hours — re-grab when you see a challenge error.
+
+When Cloudflare blocks the request the CLI returns a clear `IdxChallenge` error
+(not a parse failure). `STOCKBIT_IDX_BASE_URL` overrides the host (proxy/mirror).
 
 ### Examples
 
