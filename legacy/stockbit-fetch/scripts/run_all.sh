@@ -14,14 +14,6 @@
 #   ./run_all.sh --only brokerdist,tradebook --workers 5
 #   ./run_all.sh --only brokerdist --start-date 2026-01-01 --end-date 2026-01-20
 
-# headless-safe: the IDX scrapers launch a headed Chromium (needs a display).
-# Always re-exec under a virtual display so cron/tmux/SSH behave like a desktop.
-# SB_XVFB sentinel prevents an infinite re-exec loop.
-if [ -z "${SB_XVFB:-}" ] && command -v xvfb-run >/dev/null 2>&1; then
-    export SB_XVFB=1
-    exec xvfb-run -a "$0" "$@"
-fi
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 START_TIME=$(date +%s)
 SUCCESS_COUNT=0

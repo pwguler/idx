@@ -1,18 +1,18 @@
 """Fetch IDX official disclosures (keterbukaan informasi) into MongoDB.
 
-Source: idx.co.id announcements, scraped via headed Chromium (Playwright).
-Collection: `idxannouncement`. Note: IDX keeps a rolling ~3yr window, so older
-items may no longer be retrievable.
+Source: idx.co.id announcements, fetched via curl_cffi Chrome TLS impersonation
+(no browser needed). Collection: `idxannouncement`. Note: IDX keeps a rolling
+~3yr window, so older items may no longer be retrievable.
 """
 
 import argparse
 import time
 from datetime import datetime, timedelta
 
-from playwright.sync_api import sync_playwright
 from pymongo import MongoClient
 
-URL = "https://www.idx.co.id/id/perusahaan-tercatat/keterbukaan-informasi"
+from idx_http import get_json
+
 BASE_API = "https://www.idx.co.id/primary/ListedCompany/GetAnnouncement"
 
 
@@ -34,7 +34,7 @@ def get_date_range(start_date, end_date):
     return dates
 
 
-def fetch_announcements_for_date(page, date):
+def fetch_announcements_for_date(date):
     """Fetch all announcements from IDX API for a single date"""
     date_str = date.replace("-", "")
 
@@ -50,21 +50,7 @@ def fetch_announcements_for_date(page, date):
     )
     api_url = f"{BASE_API}{params}"
 
-    result = page.evaluate(
-        f"""
-        async () => {{
-            const r = await fetch("{api_url}", {{
-                credentials: "include"
-            }});
-            if (!r.ok) {{
-                throw new Error("HTTP " + r.status);
-            }}
-            return await r.json();
-        }}
-    """
-    )
-
-    return result.get("Replies", [])
+    return get_json(api_url).get("Replies", [])
 
 
 def save_to_mongodb(announcements, db, date):
@@ -176,38 +162,19 @@ def main():
     total_saved = 0
 
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(
-                headless=False,
-                args=["--disable-blink-features=AutomationControlled"],
-            )
+        for i, date in enumerate(dates, 1):
+            print(f"[{i}/{len(dates)}] fetching {date} ...")
 
-            context = browser.new_context(
-                user_agent=(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/120.0.0.0 Safari/537.36"
-                )
-            )
+            announcements = fetch_announcements_for_date(date)
 
-            page = context.new_page()
-            page.goto(URL, wait_until="networkidle", timeout=60000)
+            if announcements:
+                saved = save_to_mongodb(announcements, db, date)
+                total_saved += saved
+                print(f"  saved {saved} announcements")
+            else:
+                print("  no announcements")
 
-            for i, date in enumerate(dates, 1):
-                print(f"[{i}/{len(dates)}] fetching {date} ...")
-
-                announcements = fetch_announcements_for_date(page, date)
-
-                if announcements:
-                    saved = save_to_mongodb(announcements, db, date)
-                    total_saved += saved
-                    print(f"  saved {saved} announcements")
-                else:
-                    print("  no announcements")
-
-                time.sleep(1.5)
-
-            browser.close()
+            time.sleep(1.5)
 
         elapsed = time.time() - start_time
 

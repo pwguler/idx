@@ -1,42 +1,29 @@
 """Fetch IDX daily broker summary (per-broker buy/sell) into MongoDB.
 
-Source: idx.co.id trading-summary/broker-summary, scraped via headed Chromium
-(Playwright). Collection: `idxbrokersummary`. Supports --start-date/--end-date
-(API floor 2020-01-02).
+Source: idx.co.id trading-summary/broker-summary, fetched via curl_cffi Chrome
+TLS impersonation (no browser needed). Collection: `idxbrokersummary`. Supports
+--start-date/--end-date (API floor 2020-01-02).
 """
 
 import argparse
 import time
 from datetime import datetime
 
-from playwright.sync_api import sync_playwright
 from pymongo import MongoClient
 
+from idx_http import get_json
 from lib import get_trading_dates, load_holidays
 
-URL = "https://www.idx.co.id/en/market-data/trading-summary/broker-summary/"
 BASE_API = (
     "https://www.idx.co.id/primary/TradingSummary/GetBrokerSummary?length=9999&start=0"
 )
 
 
-def fetch_broker_summary_for_date(page, date):
+def fetch_broker_summary_for_date(date):
     yyyymmdd = date.replace("-", "")
     api_url = f"{BASE_API}&date={yyyymmdd}"
 
-    return page.evaluate(
-        f"""
-        async () => {{
-            const r = await fetch("{api_url}", {{
-                credentials: "include"
-            }});
-            if (!r.ok) {{
-                throw new Error("HTTP " + r.status);
-            }}
-            return await r.json();
-        }}
-    """
-    ).get("data", [])
+    return get_json(api_url).get("data", [])
 
 
 def save_to_mongodb(rows, db, fallback_date):
@@ -122,37 +109,18 @@ def main():
     start_time = time.time()
 
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(
-                headless=False,
-                args=["--disable-blink-features=AutomationControlled"],
-            )
+        total_saved = 0
 
-            context = browser.new_context(
-                user_agent=(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/120.0.0.0 Safari/537.36"
-                )
-            )
+        for i, date in enumerate(trading_dates, 1):
+            print(f"[{i}/{len(trading_dates)}] fetching {date} ...")
 
-            page = context.new_page()
-            page.goto(URL, wait_until="networkidle", timeout=60000)
+            rows = fetch_broker_summary_for_date(date)
+            saved = save_to_mongodb(rows, db, date)
 
-            total_saved = 0
+            total_saved += saved
+            print(f"  saved {saved} rows")
 
-            for i, date in enumerate(trading_dates, 1):
-                print(f"[{i}/{len(trading_dates)}] fetching {date} ...")
-
-                rows = fetch_broker_summary_for_date(page, date)
-                saved = save_to_mongodb(rows, db, date)
-
-                total_saved += saved
-                print(f"  saved {saved} rows")
-
-                time.sleep(1.5)
-
-            browser.close()
+            time.sleep(1.5)
 
         elapsed = time.time() - start_time
         print(f"\ndone in {elapsed/60:.1f} minutes")
