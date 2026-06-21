@@ -12,8 +12,8 @@ use crate::yahoo::{YahooClient, jk_symbol};
 ///
 /// # Errors
 ///
-/// Returns [`Error::Yahoo`] when Yahoo reports a chart error, otherwise propagates
-/// HTTP / deserialization errors.
+/// Returns [`crate::error::Error::Yahoo`] when Yahoo reports a chart error,
+/// otherwise propagates HTTP / deserialization errors.
 pub async fn fetch(client: &YahooClient, symbol: &str) -> Result<Value> {
     let payload = client
         .chart(symbol, &[("interval", "1d"), ("range", "1d")])

@@ -290,3 +290,67 @@ async fn yf_summary_runs_full_crumb_handshake_through_binary() {
     .await
     .unwrap();
 }
+
+#[tokio::test]
+async fn yf_quote_works_without_token() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v8/finance/chart/BBRI.JK"))
+        .and(query_param("range", "1d"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "chart": {"error": null, "result": [{"meta": {"regularMarketPrice": 4020.0}}]}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let uri = server.uri();
+    tokio::task::spawn_blocking(move || {
+        bin()
+            .env_remove("STOCKBIT_BEARER_TOKEN")
+            .env("STOCKBIT_YF_BASE_URL", &uri)
+            .args(["yf-quote", "bbri"])
+            .assert()
+            .success()
+            .stdout(contains("\"regularMarketPrice\":4020"));
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn yf_analyst_runs_crumb_handshake_through_binary() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/v1/test/getcrumb"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("cr-2"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/v10/finance/quoteSummary/BBRI.JK"))
+        .and(query_param("crumb", "cr-2"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "quoteSummary": {"error": null, "result": [{"recommendationTrend": {"trend": []}}]}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let uri = server.uri();
+    tokio::task::spawn_blocking(move || {
+        bin()
+            .env_remove("STOCKBIT_BEARER_TOKEN")
+            .env("STOCKBIT_YF_BASE_URL", &uri)
+            .args(["yf-analyst", "bbri"])
+            .assert()
+            .success()
+            .stdout(contains("recommendationTrend"));
+    })
+    .await
+    .unwrap();
+}

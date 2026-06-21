@@ -6,7 +6,7 @@ use std::time::Duration;
 use serde_json::json;
 use stockbit_cli::error::Error;
 use stockbit_cli::yahoo::{self, YahooClient};
-use wiremock::matchers::{method, path, query_param};
+use wiremock::matchers::{method, path, query_param, query_param_is_missing};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 fn client(server: &MockServer) -> YahooClient {
@@ -68,6 +68,8 @@ async fn daily_with_dates_sends_period_window() {
     Mock::given(method("GET"))
         .and(path("/v8/finance/chart/BBRI.JK"))
         .and(query_param("period1", "1609459200")) // 2021-01-01 00:00 UTC
+        .and(query_param("period2", "1612137600")) // 2021-01-31 + 86400 (inclusive end-of-day)
+        .and(query_param_is_missing("range"))
         .respond_with(ResponseTemplate::new(200).set_body_json(chart_body()))
         .expect(1)
         .mount(&server)
@@ -82,6 +84,118 @@ async fn daily_with_dates_sends_period_window() {
     )
     .await
     .expect("daily window ok");
+}
+
+#[tokio::test]
+async fn daily_from_without_to_sends_period_window_no_range() {
+    let server = MockServer::start().await;
+    // `to` omitted → period1 set, period2 = now (value varies), range absent.
+    Mock::given(method("GET"))
+        .and(path("/v8/finance/chart/BBRI.JK"))
+        .and(query_param("period1", "1609459200"))
+        .and(query_param_is_missing("range"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(chart_body()))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    yahoo::daily::fetch(&client(&server), "BBRI", Some("2021-01-01"), None, "1mo")
+        .await
+        .expect("daily open-ended window ok");
+}
+
+#[tokio::test]
+async fn daily_handles_empty_and_noninteger_timestamps() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v8/finance/chart/AAAA.JK"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "chart": {"error": null, "result": [{
+                "meta": {"gmtoffset": 0},
+                "timestamp": [1_609_459_200_i64, null, 1_609_545_600_i64],
+                "indicators": {"quote": [{
+                    "open":[1.0,2.0,3.0],"high":[1.0,2.0,3.0],"low":[1.0,2.0,3.0],
+                    "close":[1.0,2.0,3.0],"volume":[1,2,3]
+                }]}
+            }]}
+        })))
+        .mount(&server)
+        .await;
+    // non-integer timestamp is skipped → 2 rows, no panic, no error.
+    let v = yahoo::daily::fetch(&client(&server), "AAAA", None, None, "1mo")
+        .await
+        .expect("daily ok");
+    assert_eq!(v["count"], 2);
+
+    // result present but no timestamp array → empty, still ok.
+    let server2 = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v8/finance/chart/BBBB.JK"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "chart": {"error": null, "result": [{"meta": {"gmtoffset": 0}, "indicators": {"quote": [{}]}}]}
+        })))
+        .mount(&server2)
+        .await;
+    let v2 = yahoo::daily::fetch(&client(&server2), "BBBB", None, None, "1mo")
+        .await
+        .expect("empty daily ok");
+    assert_eq!(v2["count"], 0);
+    assert_eq!(v2["daily"].as_array().unwrap().len(), 0);
+}
+
+#[tokio::test]
+async fn quote_surfaces_chart_error() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v8/finance/chart/ZZZZ.JK"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "chart": {"result": null, "error": {"description": "No data found"}}
+        })))
+        .mount(&server)
+        .await;
+    let err = yahoo::quote::fetch(&client(&server), "ZZZZ")
+        .await
+        .unwrap_err();
+    assert!(matches!(err, Error::Yahoo { .. }));
+}
+
+#[tokio::test]
+async fn quote_summary_yahoo_error_surfaces() {
+    let server = MockServer::start().await;
+    mount_crumb_handshake(&server, "cr").await;
+    Mock::given(method("GET"))
+        .and(path("/v10/finance/quoteSummary/BBRI.JK"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "quoteSummary": {"result": null, "error": {"description": "Quote not found"}}
+        })))
+        .mount(&server)
+        .await;
+    // handshake succeeds, but quoteSummary reports an error → Error::Yahoo.
+    let err = yahoo::summary::fetch(&client(&server), "bbri")
+        .await
+        .unwrap_err();
+    assert!(matches!(err, Error::Yahoo { .. }));
+}
+
+#[tokio::test]
+async fn with_bases_routes_each_host_independently() {
+    // Three separate servers prove chart vs query vs cookie hosts aren't swapped.
+    let chart = MockServer::start().await;
+    let query = MockServer::start().await;
+    let cookie = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v8/finance/chart/BBRI.JK"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(chart_body()))
+        .expect(1)
+        .mount(&chart)
+        .await;
+    let c = YahooClient::with_bases(&chart.uri(), &query.uri(), &cookie.uri())
+        .expect("client")
+        .with_retry_base(Duration::from_millis(1));
+    let v = yahoo::daily::fetch(&c, "bbri", None, None, "1mo")
+        .await
+        .expect("ok");
+    assert_eq!(v["count"], 2);
 }
 
 #[tokio::test]
@@ -204,4 +318,34 @@ async fn crumb_failure_surfaces_as_crumb_error() {
         .await
         .unwrap_err();
     assert!(matches!(err, Error::Crumb));
+}
+
+#[tokio::test]
+async fn crumb_rejects_empty_json_and_non2xx_bodies() {
+    // (status, body) cases that must all yield Error::Crumb.
+    let cases: [(u16, &str); 3] = [
+        (200, ""),                     // empty crumb
+        (200, "{\"error\":\"nope\"}"), // JSON body (contains '{')
+        (401, "unauthorized"),         // non-2xx
+    ];
+    for (status, body) in cases {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/"))
+            .respond_with(ResponseTemplate::new(200))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/v1/test/getcrumb"))
+            .respond_with(ResponseTemplate::new(status).set_body_string(body.to_string()))
+            .mount(&server)
+            .await;
+        let err = yahoo::summary::fetch(&client(&server), "bbri")
+            .await
+            .unwrap_err();
+        assert!(
+            matches!(err, Error::Crumb),
+            "status={status} body={body:?} should be Crumb, got {err:?}"
+        );
+    }
 }

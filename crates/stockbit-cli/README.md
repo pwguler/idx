@@ -73,7 +73,11 @@ Global flags: `--token`, `--base-url`, `--pretty`/`-p`, `-v`/`-vv`/`-vvv`.
 
 `yf-daily` and `yf-quote` use Yahoo's open chart API. `yf-summary` and `yf-analyst`
 hit `quoteSummary`, which requires a cookie + crumb handshake — the CLI performs it
-automatically (mirroring the `yfinance` library). Symbols are auto-suffixed with `.JK`.
+automatically (mirroring the `yfinance` library). Symbols are auto-suffixed with `.JK`
+(idempotent — passing `BBRI.JK` is fine).
+
+Set `STOCKBIT_YF_BASE_URL` to point every Yahoo host at one base URL (handy for a
+proxy/mirror).
 
 ### Examples
 
@@ -122,5 +126,5 @@ The hermetic suites (`api`, `cli`, `yahoo`, …) use [`wiremock`](https://crates
 - `shareholders` returns 404 for ETFs and suspended issues; the CLI surfaces this as `{"data": null, "_note": "..."}` rather than an error.
 - Retries on `5xx`, `429`, network timeouts; never on `4xx` (apart from the 404 case above).
 - IDX trading days only: avoid weekends and Indonesian public holidays for date-bounded endpoints.
-- Yahoo `yf-daily` is split/dividend adjusted (includes `adjclose`); dates are rendered in the exchange timezone via `meta.gmtoffset`.
+- Yahoo `yf-daily` returns Yahoo's **raw** OHLCV plus a separate `adjclose` (the only split/dividend-adjusted field); dates are rendered in the exchange timezone via `meta.gmtoffset`.
 - Yahoo `quoteSummary` (used by `yf-summary`/`yf-analyst`) can rate-limit or change its crumb scheme; failures surface as `Yahoo`/`crumb` errors rather than silent empties.

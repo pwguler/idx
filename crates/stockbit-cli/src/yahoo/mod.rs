@@ -44,12 +44,11 @@ pub struct YahooClient {
 }
 
 fn with_trailing_slash(s: &str) -> Result<Url> {
-    let normalized = if s.ends_with('/') {
-        s.to_string()
+    if s.ends_with('/') {
+        Ok(Url::parse(s)?)
     } else {
-        format!("{s}/")
-    };
-    Ok(Url::parse(&normalized)?)
+        Ok(Url::parse(&format!("{s}/"))?)
+    }
 }
 
 impl YahooClient {
@@ -116,7 +115,7 @@ impl YahooClient {
                     let body = resp.text().await.unwrap_or_default();
                     Err(Error::Yahoo {
                         status: status.as_u16(),
-                        body: truncate(&body, 500),
+                        body: crate::util::truncate(&body, 500),
                     })
                 }
             }
@@ -180,9 +179,14 @@ impl YahooClient {
 }
 
 /// Append the Indonesia Stock Exchange `.JK` suffix to a normalized symbol.
+///
+/// Idempotent: a symbol that already carries `.JK` (a natural copy/paste from
+/// Yahoo) is not doubled.
 #[must_use]
 pub fn jk_symbol(symbol: &str) -> String {
-    format!("{}.JK", normalize_symbol(symbol))
+    let s = normalize_symbol(symbol);
+    let base = s.strip_suffix(".JK").unwrap_or(&s);
+    format!("{base}.JK")
 }
 
 /// Pull the first `quoteSummary.result[0]` object out of a payload, surfacing a
@@ -202,15 +206,6 @@ pub(crate) fn quote_summary_result(payload: &Value) -> Result<Value> {
     Ok(qs["result"][0].clone())
 }
 
-fn truncate(s: &str, max: usize) -> String {
-    if s.len() <= max {
-        s.to_string()
-    } else {
-        let cut = s.char_indices().nth(max).map_or(s.len(), |(i, _)| i);
-        format!("{}…", &s[..cut])
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::jk_symbol;
@@ -219,5 +214,12 @@ mod tests {
     fn jk_symbol_appends_suffix_and_uppercases() {
         assert_eq!(jk_symbol(" bbri "), "BBRI.JK");
         assert_eq!(jk_symbol("AADI"), "AADI.JK");
+    }
+
+    #[test]
+    fn jk_symbol_is_idempotent_for_existing_suffix() {
+        assert_eq!(jk_symbol("bbri.jk"), "BBRI.JK");
+        assert_eq!(jk_symbol("BBRI.JK"), "BBRI.JK");
+        assert_eq!(jk_symbol(" bbca.JK "), "BBCA.JK");
     }
 }

@@ -32,7 +32,7 @@ where
                     attempt = attempt + 1,
                     delay_ms = u64::try_from(delay.as_millis()).unwrap_or(u64::MAX),
                     error = %e,
-                    "transient stockbit error — retrying"
+                    "transient upstream error — retrying"
                 );
                 tokio::time::sleep(delay).await;
                 attempt = attempt.saturating_add(1);

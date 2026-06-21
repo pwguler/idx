@@ -22,8 +22,9 @@ pub const DEFAULT_RANGE: &str = "1mo";
 ///
 /// # Errors
 ///
-/// Returns [`Error::InvalidDate`] for malformed `from`/`to`, [`Error::Yahoo`] when
-/// Yahoo reports a chart error, otherwise propagates HTTP / deserialization errors.
+/// Returns [`crate::error::Error::InvalidDate`] for malformed `from`/`to`,
+/// [`crate::error::Error::Yahoo`] when Yahoo reports a chart error, otherwise
+/// propagates HTTP / deserialization errors.
 pub async fn fetch(
     client: &YahooClient,
     symbol: &str,
@@ -57,7 +58,8 @@ pub async fn fetch(
         });
     }
     let result = &chart["result"][0];
-    let timestamps = result["timestamp"].as_array().cloned().unwrap_or_default();
+    let empty: Vec<Value> = Vec::new();
+    let timestamps = result["timestamp"].as_array().unwrap_or(&empty);
     let quote = &result["indicators"]["quote"][0];
     let adjclose = &result["indicators"]["adjclose"][0]["adjclose"];
     let gmtoffset = result["meta"]["gmtoffset"].as_i64().unwrap_or(0);
@@ -89,9 +91,10 @@ fn now_unix() -> i64 {
         .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
 }
 
-/// `YYYY-MM-DD` (assumed already validated) → unix seconds at 00:00 UTC.
+/// `YYYY-MM-DD` (assumed already validated by `validate_date`) → unix seconds at
+/// 00:00 UTC. Internal: callers must pass a validated date.
 #[must_use]
-pub fn ymd_to_unix(s: &str) -> i64 {
+pub(crate) fn ymd_to_unix(s: &str) -> i64 {
     let y: i64 = s[0..4].parse().unwrap_or(1970);
     let m: i64 = s[5..7].parse().unwrap_or(1);
     let d: i64 = s[8..10].parse().unwrap_or(1);
@@ -100,7 +103,7 @@ pub fn ymd_to_unix(s: &str) -> i64 {
 
 /// unix seconds (+ `gmtoffset`) → `YYYY-MM-DD` in that local offset.
 #[must_use]
-pub fn unix_to_ymd(secs: i64, gmtoffset: i64) -> String {
+pub(crate) fn unix_to_ymd(secs: i64, gmtoffset: i64) -> String {
     let days = (secs + gmtoffset).div_euclid(86_400);
     let (y, m, d) = civil_from_days(days);
     format!("{y:04}-{m:02}-{d:02}")
