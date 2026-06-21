@@ -9,8 +9,8 @@ State lives in .sb_tokens.json (gitignored). On success we also mirror the
 access token into .env BEARER_TOKEN so existing fetch scripts keep working
 unchanged.
 
-Seed once:   python token-refresh.py --seed-refresh '<refresh_jwt>'
-Refresh:     python token-refresh.py            (cron this every ~12h)
+Seed once:   python token_refresh.py --seed-refresh '<refresh_jwt>'
+Refresh:     python token_refresh.py            (cron this every ~12h)
 """
 import argparse
 import base64

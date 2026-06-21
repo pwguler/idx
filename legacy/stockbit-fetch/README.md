@@ -13,15 +13,15 @@ them in MongoDB for downstream analysis.
 
 | Script | Source | MongoDB collection | Data |
 |---|---|---|---|
-| `fetch-idx-stock-summary.py` | IDX | `idxstocksummary` | Price, volume, foreign flow |
-| `fetch-idx-broker-summary.py` | IDX | `idxbrokersummary` | Broker buy/sell breakdown |
-| `fetch-idx-announcement.py` | IDX | `idxannouncement` | Official disclosures |
-| `fetch-idx-news-announcement.py` | IDX | `idxannouncement` | News disclosures |
-| `fetch-all-stocks.py` | Stockbit | `marketdetectors` | Bandar detector / broker summary |
-| `fetch-broker-distribution.py` | Stockbit | `brokerdistribution` | Smart-money flow by broker |
-| `fetch-keystats.py` | Stockbit | `keystats` | Fundamentals (PER, PBV, ROE, DER) |
-| `fetch-stock-profiles.py` | Stockbit | `stockprofiles` | Company info, sector, shareholders |
-| `fetch-trade-book.py` | Stockbit | `tradebook` | Trade executions by time |
+| `fetch_idx_stock_summary.py` | IDX | `idxstocksummary` | Price, volume, foreign flow |
+| `fetch_idx_broker_summary.py` | IDX | `idxbrokersummary` | Broker buy/sell breakdown |
+| `fetch_idx_announcement.py` | IDX | `idxannouncement` | Official disclosures |
+| `fetch_idx_news_announcement.py` | IDX | `idxannouncement` | News disclosures |
+| `fetch_all_stocks.py` | Stockbit | `marketdetectors` | Bandar detector / broker summary |
+| `fetch_broker_distribution.py` | Stockbit | `brokerdistribution` | Smart-money flow by broker |
+| `fetch_keystats.py` | Stockbit | `keystats` | Fundamentals (PER, PBV, ROE, DER) |
+| `fetch_stock_profiles.py` | Stockbit | `stockprofiles` | Company info, sector, shareholders |
+| `fetch_trade_book.py` | Stockbit | `tradebook` | Trade executions by time |
 
 ## Setup
 
@@ -38,7 +38,7 @@ Edit `.env`:
 
 ## Stockbit token (auto-refresh)
 
-Stockbit access tokens (`at`) live ~24h. `scripts/token-refresh.py` keeps
+Stockbit access tokens (`at`) live ~24h. `scripts/token_refresh.py` keeps
 them fresh automatically using the rotating refresh token (`rt`, ~7 days).
 
 **One-time seed** — grab the refresh token from a logged-in browser:
@@ -46,17 +46,17 @@ DevTools → Application → Cookies → `stockbit.com` → cookie `credentialSt
 → copy `state.refresh.token`, then:
 
 ```bash
-python scripts/token-refresh.py --seed-refresh '<refresh_jwt>'
+python scripts/token_refresh.py --seed-refresh '<refresh_jwt>'
 ```
 
 This stores tokens in `.sb_tokens.json` (gitignored) and mirrors the access
 token into `.env` `BEARER_TOKEN`. Schedule a daily refresh:
 
 ```cron
-0 8 * * * cd /path/to/stockbit-fetch && python scripts/token-refresh.py >> /tmp/token-refresh.log 2>&1
+0 8 * * * cd /path/to/stockbit-fetch && python scripts/token_refresh.py >> /tmp/token_refresh.log 2>&1
 ```
 
-Check status: `python scripts/token-refresh.py --show`
+Check status: `python scripts/token_refresh.py --show`
 
 > The refresh token is one-time-use (rotates each call). One holder per web
 > session — running this may log out the Stockbit **web** session, but the
@@ -66,16 +66,16 @@ Check status: `python scripts/token-refresh.py --show`
 
 ```bash
 # run everything (IDX scrapers need a display; auto-wrapped in xvfb)
-./scripts/run-all.sh
+./scripts/run_all.sh
 
 # subset
-./scripts/run-all.sh --only keystats,profiles
+./scripts/run_all.sh --only keystats,profiles
 
 # date range (for scripts that support it)
-./scripts/run-all.sh --only brokerdist --start-date 2026-01-01 --end-date 2026-01-20
+./scripts/run_all.sh --only brokerdist --start-date 2026-01-01 --end-date 2026-01-20
 
 # weekday-only daily runner (skips weekends + holidays in data/holidays.txt)
-./scripts/run-daily.sh
+./scripts/run_daily.sh
 ```
 
 ## Layout
@@ -83,7 +83,7 @@ Check status: `python scripts/token-refresh.py --show`
 ```
 data/holidays.txt     # IDX holidays (skipped by the runners)
 data/stocklist.txt      # tickers to fetch
-scripts/          # fetch scripts + utils.py + token-refresh.py + runners
+scripts/          # fetch scripts + utils.py + token_refresh.py + runners
 ```
 
 ## Disclaimer

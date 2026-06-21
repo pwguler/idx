@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # run all stockbit + idx data fetching scripts
-# usage: ./run-all.sh [--only script1,script2,...] [options]
+# usage: ./run_all.sh [--only script1,script2,...] [options]
 #
 # available scripts:
 #   keystats, profiles, allstocks, idxstock, idxbroker, brokerdist, tradebook, idxann, idxnews
 #
 # examples:
-#   ./run-all.sh                          # run all scripts
-#   ./run-all.sh --only keystats          # run only keystats
-#   ./run-all.sh --only keystats,profiles # run keystats and profiles
-#   ./run-all.sh --only brokerdist,tradebook --workers 5
-#   ./run-all.sh --only brokerdist --start-date 2026-01-01 --end-date 2026-01-20
+#   ./run_all.sh                          # run all scripts
+#   ./run_all.sh --only keystats          # run only keystats
+#   ./run_all.sh --only keystats,profiles # run keystats and profiles
+#   ./run_all.sh --only brokerdist,tradebook --workers 5
+#   ./run_all.sh --only brokerdist --start-date 2026-01-01 --end-date 2026-01-20
 
 # headless-safe: the IDX scrapers launch a headed Chromium (needs a display).
 # Always re-exec under a virtual display so cron/tmux/SSH behave like a desktop.
@@ -87,47 +87,47 @@ run_script() {
 
 # 1. fetch keystats
 if should_run "keystats"; then
-    run_script "keystats" "fetch-keystats.py" || true
+    run_script "keystats" "fetch_keystats.py" || true
 fi
 
 # 2. fetch stock profiles
 if should_run "profiles"; then
-    run_script "stock profiles" "fetch-stock-profiles.py" || true
+    run_script "stock profiles" "fetch_stock_profiles.py" || true
 fi
 
 # 3. fetch all stocks data
 if should_run "allstocks"; then
-    run_script "all stocks data" "fetch-all-stocks.py" || true
+    run_script "all stocks data" "fetch_all_stocks.py" || true
 fi
 
 # 4. fetch IDX stock summary
 if should_run "idxstock"; then
-    run_script "IDX stock summary" "fetch-idx-stock-summary.py" || true
+    run_script "IDX stock summary" "fetch_idx_stock_summary.py" || true
 fi
 
 # 5. fetch IDX broker summary
 if should_run "idxbroker"; then
-    run_script "IDX broker summary" "fetch-idx-broker-summary.py" || true
+    run_script "IDX broker summary" "fetch_idx_broker_summary.py" || true
 fi
 
 # 6. fetch broker distribution
 if should_run "brokerdist"; then
-    run_script "broker distribution" "fetch-broker-distribution.py" || true
+    run_script "broker distribution" "fetch_broker_distribution.py" || true
 fi
 
 # 7. fetch trade book
 if should_run "tradebook"; then
-    run_script "trade book" "fetch-trade-book.py" || true
+    run_script "trade book" "fetch_trade_book.py" || true
 fi
 
 # 8. fetch IDX announcements
 if should_run "idxann"; then
-    run_script "IDX announcements" "fetch-idx-announcement.py" || true
+    run_script "IDX announcements" "fetch_idx_announcement.py" || true
 fi
 
 # 9. fetch IDX news/pengumuman
 if should_run "idxnews"; then
-    run_script "IDX news announcements" "fetch-idx-news-announcement.py" || true
+    run_script "IDX news announcements" "fetch_idx_news_announcement.py" || true
 fi
 
 echo "====================================="

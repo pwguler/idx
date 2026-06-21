@@ -1,6 +1,6 @@
 #!/bin/bash
 # Daily fetch runner — skips weekends and Indonesian holidays
-# Usage: ./run-daily.sh [--workers N] [--only scripts] [extra args]
+# Usage: ./run_daily.sh [--workers N] [--only scripts] [extra args]
 # Called by openclaw cron at 06:30 WIB on weekdays
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -44,7 +44,7 @@ fi
 FETCH_START=$(date +%s)
 
 # Run fetch scripts and capture per-script results
-bash "$SCRIPT_DIR/run-all.sh" "$@" 2>&1 | tee -a "$LOG_FILE"
+bash "$SCRIPT_DIR/run_all.sh" "$@" 2>&1 | tee -a "$LOG_FILE"
 EXIT_CODE=${PIPESTATUS[0]}
 ELAPSED=$(( $(date +%s) - FETCH_START ))
 

@@ -21,8 +21,8 @@ YEARS="2024 2023 2022 2021 2020 2019 2018 2017 2016"
 for Y in $YEARS; do
   S="${Y}-01-01"; E="${Y}-12-31"
   echo "=== YEAR $Y marketdetectors $(date -u +%T) ===" | tee -a "$LOG"
-  python3 fetch-all-stocks.py --start-date "$S" --end-date "$E" --workers 5 2>&1 | tee -a "$LOG"
+  python3 fetch_all_stocks.py --start-date "$S" --end-date "$E" --workers 5 2>&1 | tee -a "$LOG"
   echo "=== YEAR $Y brokerdistribution $(date -u +%T) ===" | tee -a "$LOG"
-  python3 fetch-broker-distribution.py --start-date "$S" --end-date "$E" --workers 5 2>&1 | tee -a "$LOG"
+  python3 fetch_broker_distribution.py --start-date "$S" --end-date "$E" --workers 5 2>&1 | tee -a "$LOG"
 done
 echo "=== STOCKBIT BACKFILL done $(date -u +%FT%TZ) ===" | tee -a "$LOG"
