@@ -22,8 +22,6 @@ them in MongoDB for downstream analysis.
 | `fetch-keystats.py` | Stockbit | `keystats` | Fundamentals (PER, PBV, ROE, DER) |
 | `fetch-stock-profiles.py` | Stockbit | `stockprofiles` | Company info, sector, shareholders |
 | `fetch-trade-book.py` | Stockbit | `tradebook` | Trade executions by time |
-| `fetch-shareholder-composition.py` | Stockbit | — | Shareholder composition |
-| `fetch-grw-broker-activity.py` | Stockbit | — | Broker activity |
 
 ## Setup
 
