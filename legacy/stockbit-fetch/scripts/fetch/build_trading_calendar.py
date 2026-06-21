@@ -2,12 +2,12 @@
 Build the IDX trading calendar 2016-2024 by probing ONE liquid stock (BBRI)
 per weekday via Stockbit marketdetectors. Empty response => exchange holiday.
 
-Output: appends detected holidays into config/holidays.txt (dedup, sorted),
+Output: appends detected holidays into data/holidays.txt (dedup, sorted),
 so the existing range-capable fetch scripts skip them for free across all 958
 stocks. We probe holidays once (on 1 stock) instead of wasting 958 requests
 per holiday during the full backfill.
 
-Resumable: writes a per-year cache to config/calendar_cache/<year>.json so a
+Resumable: writes a per-year cache to data/calendar_cache/<year>.json so a
 re-run skips already-probed years.
 """
 import json
@@ -29,8 +29,8 @@ def _session():
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..", "..")
 ENV = os.path.join(ROOT, ".env")
-HOLIDAYS = os.path.join(ROOT, "config", "holidays.txt")
-CACHE_DIR = os.path.join(ROOT, "config", "calendar_cache")
+HOLIDAYS = os.path.join(ROOT, "data", "holidays.txt")
+CACHE_DIR = os.path.join(ROOT, "data", "calendar_cache")
 
 BASE = "https://exodus.stockbit.com"
 PROBE_SYMBOL = "BBRI"  # most liquid, trades every session since well before 2016

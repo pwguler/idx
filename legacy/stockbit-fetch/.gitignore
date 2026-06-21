@@ -16,7 +16,7 @@ __pycache__/
 venv/
 
 # Caches / logs
-config/calendar_cache/
+data/calendar_cache/
 *.log
 
 # OS

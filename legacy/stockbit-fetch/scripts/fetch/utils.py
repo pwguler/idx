@@ -3,11 +3,11 @@ from datetime import datetime, timedelta
 
 
 def load_holidays(script_dir=None):
-    """Load holidays from config/holidays.txt"""
+    """Load holidays from data/holidays.txt"""
     if script_dir is None:
         script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    holidays_path = os.path.join(script_dir, "..", "..", "config", "holidays.txt")
+    holidays_path = os.path.join(script_dir, "..", "..", "data", "holidays.txt")
     holidays = set()
 
     if not os.path.exists(holidays_path):

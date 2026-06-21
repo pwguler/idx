@@ -74,14 +74,14 @@ Check status: `python scripts/fetch/sb_refresh.py --show`
 # date range (for scripts that support it)
 ./scripts/fetch/run-all.sh --only brokerdist --start-date 2026-01-01 --end-date 2026-01-20
 
-# weekday-only daily runner (skips weekends + holidays in config/holidays.txt)
+# weekday-only daily runner (skips weekends + holidays in data/holidays.txt)
 ./scripts/fetch/run-daily.sh
 ```
 
 ## Layout
 
 ```
-config/holidays.txt     # IDX holidays (skipped by the runners)
+data/holidays.txt     # IDX holidays (skipped by the runners)
 data/stocklist.txt      # tickers to fetch
 scripts/fetch/          # fetch scripts + utils.py + sb_refresh.py + runners
 ```

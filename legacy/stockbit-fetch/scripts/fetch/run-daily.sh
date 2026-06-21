@@ -5,7 +5,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-HOLIDAYS_FILE="$PROJECT_DIR/config/holidays.txt"
+HOLIDAYS_FILE="$PROJECT_DIR/data/holidays.txt"
 LOG_FILE="/tmp/run-daily-$(date +%Y%m%d).log"
 
 TODAY=$(date +%Y-%m-%d)
