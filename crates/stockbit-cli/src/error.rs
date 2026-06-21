@@ -8,6 +8,9 @@ pub enum Error {
     #[error("HTTP request failed: {0}")]
     Http(#[from] reqwest::Error),
 
+    #[error("IDX HTTP request failed: {0}")]
+    IdxHttp(#[from] wreq::Error),
+
     #[error("Stockbit API returned status {status}: {body}")]
     Api { status: u16, body: String },
 
@@ -21,16 +24,11 @@ pub enum Error {
     Idx { status: u16, body: String },
 
     #[error(
-        "IDX blocked the request with a Cloudflare challenge. Provide a fresh `cf_clearance` cookie \
-         (from a browser that solved the challenge) via --idx-cookie or IDX_COOKIE, matching the \
-         same User-Agent (--idx-user-agent / IDX_USER_AGENT) and originating IP."
+        "IDX blocked the request with a Cloudflare challenge despite TLS impersonation. \
+         The bot-fight fingerprint may have changed — try updating the emulation profile, \
+         or pass a fresh browser `cf_clearance` cookie via --idx-cookie."
     )]
     IdxChallenge,
-
-    #[error(
-        "missing IDX cookie: pass --idx-cookie or set IDX_COOKIE (needs a browser cf_clearance)"
-    )]
-    MissingIdxCookie,
 
     #[error("invalid URL: {0}")]
     Url(#[from] url::ParseError),
@@ -62,6 +60,7 @@ impl Error {
                 *status == 429 || (500..600).contains(status)
             }
             Self::Http(e) => e.is_timeout() || e.is_connect() || e.is_request(),
+            Self::IdxHttp(e) => e.is_timeout() || e.is_connect(),
             _ => false,
         }
     }

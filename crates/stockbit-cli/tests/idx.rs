@@ -1,33 +1,31 @@
-//! Hermetic IDX client tests via `wiremock`. Covers param formatting, the
-//! Cloudflare-challenge detection, and error mapping.
+//! Hermetic IDX client tests via `wiremock`. Covers param formatting, the optional
+//! cookie, retry, the Cloudflare-challenge fallback, and error mapping.
+//!
+//! Note: the client impersonates Chrome's TLS fingerprint in production, but against
+//! a plaintext wiremock server it just speaks HTTP/1.1 — so these stay hermetic.
 
 use std::time::Duration;
 
 use serde_json::json;
 use stockbit_cli::error::Error;
-use stockbit_cli::idx::{self, DEFAULT_USER_AGENT, IdxClient};
+use stockbit_cli::idx::{self, IdxClient};
 use wiremock::matchers::{header, method, path, query_param, query_param_is_missing};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 fn client(server: &MockServer) -> IdxClient {
-    IdxClient::with_base(
-        &server.uri(),
-        "cf_clearance=abc; other=1",
-        DEFAULT_USER_AGENT,
-    )
-    .expect("idx client builds")
-    .with_retry_base(Duration::from_millis(1))
+    IdxClient::with_base(&server.uri(), None)
+        .expect("idx client builds")
+        .with_retry_base(Duration::from_millis(1))
 }
 
 #[tokio::test]
-async fn stock_summary_formats_date_and_sends_cookie() {
+async fn stock_summary_formats_date_and_params() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path("/primary/TradingSummary/GetStockSummary"))
         .and(query_param("date", "20260619")) // dashes stripped from 2026-06-19
         .and(query_param("length", "9999"))
         .and(query_param("start", "0"))
-        .and(header("cookie", "cf_clearance=abc; other=1"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "data": [{"StockCode": "BBRI", "Close": 4020}], "recordsTotal": 1
         })))
@@ -42,24 +40,22 @@ async fn stock_summary_formats_date_and_sends_cookie() {
 }
 
 #[tokio::test]
-async fn client_forwards_user_agent_header() {
-    // Cloudflare binds clearance to the UA, so the client must send the configured
-    // UA verbatim. Use a simple sentinel value for a robust exact match.
+async fn optional_cookie_is_sent_when_provided() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path("/primary/TradingSummary/GetStockSummary"))
-        .and(header("user-agent", "sentinel-ua/9.9"))
+        .and(header("cookie", "cf_clearance=abc; s=1"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": []})))
         .expect(1)
         .mount(&server)
         .await;
 
-    let c = IdxClient::with_base(&server.uri(), "cf_clearance=x", "sentinel-ua/9.9")
+    let c = IdxClient::with_base(&server.uri(), Some("cf_clearance=abc; s=1"))
         .expect("client")
         .with_retry_base(Duration::from_millis(1));
     idx::stock_summary::fetch(&c, None)
         .await
-        .expect("ua forwarded");
+        .expect("cookie sent");
 }
 
 #[tokio::test]
@@ -110,8 +106,7 @@ async fn cloudflare_403_maps_to_challenge() {
         .and(path("/primary/TradingSummary/GetStockSummary"))
         .respond_with(
             ResponseTemplate::new(403)
-                .insert_header("content-type", "text/html")
-                .set_body_string("<!DOCTYPE html><html>Just a moment...</html>"),
+                .set_body_raw("<!DOCTYPE html>Just a moment...".as_bytes(), "text/html"),
         )
         .mount(&server)
         .await;
@@ -142,7 +137,6 @@ async fn html_200_interstitial_maps_to_challenge() {
 
 #[tokio::test]
 async fn challenge_detected_via_body_marker_only() {
-    // Not a 403, not text/html — only the body marker reveals the interstitial.
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path("/primary/TradingSummary/GetStockSummary"))
@@ -160,9 +154,7 @@ async fn challenge_detected_via_body_marker_only() {
 
 #[tokio::test]
 async fn retries_5xx_then_succeeds() {
-    use wiremock::matchers::query_param as qp;
     let server = MockServer::start().await;
-    // First two attempts 503, then a 200 — proves the IDX client's own retry loop.
     Mock::given(method("GET"))
         .and(path("/primary/TradingSummary/GetStockSummary"))
         .respond_with(ResponseTemplate::new(503).set_body_json(json!({"e": 1})))
@@ -172,7 +164,7 @@ async fn retries_5xx_then_succeeds() {
         .await;
     Mock::given(method("GET"))
         .and(path("/primary/TradingSummary/GetStockSummary"))
-        .and(qp("length", "9999"))
+        .and(query_param("length", "9999"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": []})))
         .with_priority(2)
         .mount(&server)

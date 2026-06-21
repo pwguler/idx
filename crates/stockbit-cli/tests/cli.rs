@@ -356,12 +356,12 @@ async fn yf_analyst_runs_crumb_handshake_through_binary() {
 }
 
 #[tokio::test]
-async fn idx_stock_summary_works_with_cookie_no_token() {
+async fn idx_stock_summary_works_without_token_or_cookie() {
     let server = MockServer::start().await;
+    // No cookie matcher: IDX works cookie-less via TLS impersonation.
     Mock::given(method("GET"))
         .and(path("/primary/TradingSummary/GetStockSummary"))
         .and(query_param("date", "20260619"))
-        .and(header("cookie", "cf_clearance=zzz"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "data": [{"StockCode": "BBRI"}]
         })))
@@ -373,15 +373,9 @@ async fn idx_stock_summary_works_with_cookie_no_token() {
     tokio::task::spawn_blocking(move || {
         bin()
             .env_remove("STOCKBIT_BEARER_TOKEN")
-            .env_remove("IDX_USER_AGENT")
+            .env_remove("IDX_COOKIE")
             .env("STOCKBIT_IDX_BASE_URL", &uri)
-            .args([
-                "--idx-cookie",
-                "cf_clearance=zzz",
-                "idx-stock-summary",
-                "--date",
-                "2026-06-19",
-            ])
+            .args(["idx-stock-summary", "--date", "2026-06-19"])
             .assert()
             .success()
             .stdout(contains("\"StockCode\":\"BBRI\""));
@@ -391,15 +385,24 @@ async fn idx_stock_summary_works_with_cookie_no_token() {
 }
 
 #[tokio::test]
-async fn idx_without_cookie_errors_clearly() {
-    tokio::task::spawn_blocking(|| {
+async fn idx_optional_cookie_is_forwarded() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/primary/TradingSummary/GetBrokerSummary"))
+        .and(header("cookie", "cf_clearance=zzz"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": []})))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let uri = server.uri();
+    tokio::task::spawn_blocking(move || {
         bin()
             .env_remove("STOCKBIT_BEARER_TOKEN")
-            .env_remove("IDX_COOKIE")
-            .args(["idx-broker-summary"])
+            .env("STOCKBIT_IDX_BASE_URL", &uri)
+            .args(["--idx-cookie", "cf_clearance=zzz", "idx-broker-summary"])
             .assert()
-            .failure()
-            .stderr(contains("missing IDX cookie"));
+            .success();
     })
     .await
     .unwrap();

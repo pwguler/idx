@@ -2,7 +2,7 @@
 
 CLI for [Stockbit](https://stockbit.com)'s `exodus` REST API, [Yahoo Finance](https://finance.yahoo.com), and [IDX](https://www.idx.co.id) trading summaries. Prints raw JSON to stdout.
 
-Stockbit commands need a bearer token; Yahoo commands (`yf-*`) need none; IDX commands (`idx-*`) need a browser `cf_clearance` cookie (Cloudflare).
+Stockbit commands need a bearer token; Yahoo (`yf-*`) and IDX (`idx-*`) commands need none.
 
 ## Install
 
@@ -15,7 +15,9 @@ git clone https://github.com/gitshrl/stockbit-cli.git
 cd stockbit-cli && cargo install --path . --locked
 ```
 
-Requires Rust 1.96 (pinned in `rust-toolchain.toml`).
+Requires Rust 1.96 (pinned in `rust-toolchain.toml`). The IDX TLS-impersonation
+dependency (`wreq` → BoringSSL) needs **`cmake`** and **`libclang`** at build time
+(e.g. `apt install cmake libclang-dev`). Runtime needs neither.
 
 ## Authentication
 
@@ -68,12 +70,12 @@ stockbit yf-quote             <SYMBOL>                           # latest snapsh
 stockbit yf-summary           <SYMBOL>                           # fundamentals & profile
 stockbit yf-analyst           <SYMBOL>                           # recommendations, targets, estimates
 
-# IDX trading summaries (needs --idx-cookie / IDX_COOKIE with a cf_clearance)
+# IDX trading summaries (no token/cookie needed — Chrome TLS impersonation)
 stockbit idx-stock-summary    [--date YYYY-MM-DD]               # price/volume/foreign flow
 stockbit idx-broker-summary   [--date YYYY-MM-DD]               # per-broker buy/sell
 ```
 
-Global flags: `--token`, `--base-url`, `--idx-cookie`, `--idx-user-agent`, `--pretty`/`-p`, `-v`/`-vv`/`-vvv`.
+Global flags: `--token`, `--base-url`, `--idx-cookie`, `--pretty`/`-p`, `-v`/`-vv`/`-vvv`.
 
 `yf-daily` and `yf-quote` use Yahoo's open chart API. `yf-summary` and `yf-analyst`
 hit `quoteSummary`, which requires a cookie + crumb handshake — the CLI performs it
@@ -85,24 +87,20 @@ proxy/mirror).
 
 ### IDX commands (Cloudflare)
 
-`idx.co.id` is behind Cloudflare, so there is no token-only access. Grab a
-`cf_clearance` cookie from a browser that has loaded idx.co.id (DevTools →
-Application → Cookies), then:
+`idx.co.id` is behind Cloudflare bot-fight, which blocks by TLS/JA3 + HTTP2
+fingerprint. The CLI impersonates a real Chrome fingerprint (via `wreq`), so
+`idx-*` works **with no token, no cookie, and no browser** — from any host/IP
+(including a server):
 
 ```bash
-stockbit --idx-cookie 'cf_clearance=…; …' idx-stock-summary --date 2026-06-19
-# or: export IDX_COOKIE='cf_clearance=…'
+stockbit idx-stock-summary --date 2026-06-19
+stockbit idx-broker-summary
 ```
 
-Hard constraints (Cloudflare, not the CLI):
-- The cookie is **IP-bound** — run the command from the **same machine/IP** as the
-  browser that earned it (a server with a different IP will get a challenge).
-- Set `--idx-user-agent` / `IDX_USER_AGENT` to **match that browser's UA** (the
-  clearance is UA-bound). Defaults to a desktop-Chrome UA.
-- `cf_clearance` expires within hours — re-grab when you see a challenge error.
-
-When Cloudflare blocks the request the CLI returns a clear `IdxChallenge` error
-(not a parse failure). `STOCKBIT_IDX_BASE_URL` overrides the host (proxy/mirror).
+`--idx-cookie` / `IDX_COOKIE` is **optional** (appends an extra cookie; rarely
+needed). If the fingerprint ever stops passing, the CLI returns a clear
+`IdxChallenge` error (not a parse failure) — update the emulation profile or pass a
+fresh `cf_clearance` cookie. `STOCKBIT_IDX_BASE_URL` overrides the host (proxy/mirror).
 
 ### Examples
 

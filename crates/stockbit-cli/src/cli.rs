@@ -27,8 +27,8 @@ use crate::yahoo::{self, YahooClient};
                   `stockbit config set token <VALUE>`.\n\n\
                   Yahoo commands (`yf-*`) need no token — `yf-summary`/`yf-analyst` perform \
                   Yahoo's cookie+crumb handshake automatically.\n\n\
-                  IDX commands (`idx-*`) need a browser `cf_clearance` cookie via --idx-cookie / \
-                  IDX_COOKIE (Cloudflare; IP- and UA-bound, expires within hours)."
+                  IDX commands (`idx-*`) need no token or cookie — they pass Cloudflare \
+                  bot-fight via Chrome TLS impersonation (--idx-cookie is an optional extra)."
 )]
 pub struct Cli {
     /// Bearer token. Defaults to `$STOCKBIT_BEARER_TOKEN` or value in `.env`.
@@ -39,13 +39,10 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub base_url: Option<String>,
 
-    /// IDX cookie (must include a fresh `cf_clearance`). For `idx-*` commands.
+    /// Optional extra cookie for `idx-*` commands (rarely needed — IDX works
+    /// cookie-less via Chrome TLS impersonation).
     #[arg(long, global = true, env = "IDX_COOKIE", hide_env_values = true)]
     pub idx_cookie: Option<String>,
-
-    /// User-Agent for `idx-*` commands — must match the browser that minted the cookie.
-    #[arg(long, global = true, env = "IDX_USER_AGENT")]
-    pub idx_user_agent: Option<String>,
 
     /// Pretty-print JSON output.
     #[arg(long, short = 'p', global = true)]
@@ -222,24 +219,16 @@ async fn run_inner(cli: Cli) -> Result<()> {
         };
         dispatch_yahoo(&client, cli.command).await?
     } else if cli.command.is_idx() {
-        // IDX needs a browser cf_clearance cookie (token-less). Base overridable
-        // via STOCKBIT_IDX_BASE_URL (proxy/mirror + hermetic tests).
-        let cookie = cli
-            .idx_cookie
-            .clone()
-            .filter(|c| !c.trim().is_empty())
-            .ok_or(crate::error::Error::MissingIdxCookie)?;
-        let ua = cli
-            .idx_user_agent
-            .clone()
-            .filter(|u| !u.trim().is_empty())
-            .unwrap_or_else(|| crate::idx::DEFAULT_USER_AGENT.to_string());
-        let client = match std::env::var("STOCKBIT_IDX_BASE_URL")
+        // IDX works token-less and cookie-less via Chrome TLS impersonation; an
+        // optional cookie may be appended. Base overridable via STOCKBIT_IDX_BASE_URL
+        // (proxy/mirror + hermetic tests).
+        let cookie = cli.idx_cookie.clone();
+        let base = std::env::var("STOCKBIT_IDX_BASE_URL")
             .ok()
-            .filter(|s| !s.is_empty())
-        {
-            Some(base) => IdxClient::with_base(&base, &cookie, &ua)?,
-            None => IdxClient::new(&cookie, &ua)?,
+            .filter(|s| !s.is_empty());
+        let client = match base {
+            Some(b) => IdxClient::with_base(&b, cookie.as_deref())?,
+            None => IdxClient::with_cookie(cookie.as_deref())?,
         };
         dispatch_idx(&client, cli.command).await?
     } else {
