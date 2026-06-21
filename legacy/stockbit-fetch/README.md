@@ -38,7 +38,7 @@ Edit `.env`:
 
 ## Stockbit token (auto-refresh)
 
-Stockbit access tokens (`at`) live ~24h. `scripts/fetch/sb_refresh.py` keeps
+Stockbit access tokens (`at`) live ~24h. `scripts/sb_refresh.py` keeps
 them fresh automatically using the rotating refresh token (`rt`, ~7 days).
 
 **One-time seed** — grab the refresh token from a logged-in browser:
@@ -46,17 +46,17 @@ DevTools → Application → Cookies → `stockbit.com` → cookie `credentialSt
 → copy `state.refresh.token`, then:
 
 ```bash
-python scripts/fetch/sb_refresh.py --seed-refresh '<refresh_jwt>'
+python scripts/sb_refresh.py --seed-refresh '<refresh_jwt>'
 ```
 
 This stores tokens in `.sb_tokens.json` (gitignored) and mirrors the access
 token into `.env` `BEARER_TOKEN`. Schedule a daily refresh:
 
 ```cron
-0 8 * * * cd /path/to/stockbit-fetch && python scripts/fetch/sb_refresh.py >> /tmp/sb_refresh.log 2>&1
+0 8 * * * cd /path/to/stockbit-fetch && python scripts/sb_refresh.py >> /tmp/sb_refresh.log 2>&1
 ```
 
-Check status: `python scripts/fetch/sb_refresh.py --show`
+Check status: `python scripts/sb_refresh.py --show`
 
 > The refresh token is one-time-use (rotates each call). One holder per web
 > session — running this may log out the Stockbit **web** session, but the
@@ -66,16 +66,16 @@ Check status: `python scripts/fetch/sb_refresh.py --show`
 
 ```bash
 # run everything (IDX scrapers need a display; auto-wrapped in xvfb)
-./scripts/fetch/run-all.sh
+./scripts/run-all.sh
 
 # subset
-./scripts/fetch/run-all.sh --only keystats,profiles
+./scripts/run-all.sh --only keystats,profiles
 
 # date range (for scripts that support it)
-./scripts/fetch/run-all.sh --only brokerdist --start-date 2026-01-01 --end-date 2026-01-20
+./scripts/run-all.sh --only brokerdist --start-date 2026-01-01 --end-date 2026-01-20
 
 # weekday-only daily runner (skips weekends + holidays in data/holidays.txt)
-./scripts/fetch/run-daily.sh
+./scripts/run-daily.sh
 ```
 
 ## Layout
@@ -83,7 +83,7 @@ Check status: `python scripts/fetch/sb_refresh.py --show`
 ```
 data/holidays.txt     # IDX holidays (skipped by the runners)
 data/stocklist.txt      # tickers to fetch
-scripts/fetch/          # fetch scripts + utils.py + sb_refresh.py + runners
+scripts/          # fetch scripts + utils.py + sb_refresh.py + runners
 ```
 
 ## Disclaimer

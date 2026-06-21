@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 
 import requests
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STORE = os.path.join(REPO, ".sb_tokens.json")
 ENV = os.path.join(REPO, ".env")
 REFRESH_URL = "https://exodus.stockbit.com/login/refresh"

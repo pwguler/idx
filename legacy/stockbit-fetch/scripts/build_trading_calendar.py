@@ -27,7 +27,7 @@ def _session():
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.join(HERE, "..", "..")
+ROOT = os.path.join(HERE, "..")
 ENV = os.path.join(ROOT, ".env")
 HOLIDAYS = os.path.join(ROOT, "data", "holidays.txt")
 CACHE_DIR = os.path.join(ROOT, "data", "calendar_cache")

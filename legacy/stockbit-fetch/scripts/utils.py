@@ -7,7 +7,7 @@ def load_holidays(script_dir=None):
     if script_dir is None:
         script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    holidays_path = os.path.join(script_dir, "..", "..", "data", "holidays.txt")
+    holidays_path = os.path.join(script_dir, "..", "data", "holidays.txt")
     holidays = set()
 
     if not os.path.exists(holidays_path):
@@ -65,7 +65,7 @@ def load_stock_list(script_dir=None):
     if script_dir is None:
         script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    stock_list_path = os.path.join(script_dir, "..", "..", "data", "stocklist.txt")
+    stock_list_path = os.path.join(script_dir, "..", "data", "stocklist.txt")
 
     with open(stock_list_path, "r") as f:
         return [line.strip() for line in f if line.strip()]
