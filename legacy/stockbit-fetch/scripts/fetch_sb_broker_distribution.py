@@ -8,7 +8,7 @@ import requests
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
-from utils import get_trading_date, get_trading_dates, load_holidays, load_stock_list
+from lib import get_trading_dates, load_holidays, load_stock_list
 
 _tls = __import__("threading").local()
 
@@ -25,21 +25,12 @@ BEARER_TOKEN = os.getenv("BEARER_TOKEN")
 BASE_URL = "https://exodus.stockbit.com"
 
 
-def get_market_detectors(symbol, date=None, limit=100, max_retries=3):
-    url = f"{BASE_URL}/marketdetectors/{symbol}"
+def get_broker_distribution(symbol, date, max_retries=3):
+    url = f"{BASE_URL}/order-trade/broker/distribution"
 
     headers = {"authorization": f"Bearer {BEARER_TOKEN}", "user-agent": "curl/8.0.0"}
 
-    params = {
-        "transaction_type": "TRANSACTION_TYPE_NET",
-        "market_board": "MARKET_BOARD_REGULER",
-        "investor_type": "INVESTOR_TYPE_ALL",
-        "limit": limit,
-    }
-
-    if date:
-        params["from"] = date
-        params["to"] = date
+    params = {"symbol": symbol, "date": date}
 
     for attempt in range(max_retries):
         try:
@@ -52,7 +43,7 @@ def get_market_detectors(symbol, date=None, limit=100, max_retries=3):
                 wait_time = (attempt + 1) * 2
                 time.sleep(wait_time)
             else:
-                raise Exception(f"error {response.status_code}: {response.text}")
+                raise Exception(f"error {response.status_code}: {response.text[:100]}")
 
         except requests.exceptions.RequestException as e:
             if attempt < max_retries - 1:
@@ -64,54 +55,16 @@ def get_market_detectors(symbol, date=None, limit=100, max_retries=3):
     raise Exception("max retries exceeded")
 
 
-def get_orderbook(symbol, max_retries=3):
-    url = f"{BASE_URL}/company-price-feed/v2/orderbook/companies/{symbol}"
-
-    headers = {"authorization": f"Bearer {BEARER_TOKEN}", "user-agent": "curl/8.0.0"}
-
-    for attempt in range(max_retries):
-        try:
-            response = _session().get(url, headers=headers)
-
-            if response.status_code == 200:
-                return response.json()
-
-            if attempt < max_retries - 1:
-                wait_time = (attempt + 1) * 2
-                time.sleep(wait_time)
-            else:
-                raise Exception(f"error {response.status_code}: {response.text}")
-
-        except requests.exceptions.RequestException as e:
-            if attempt < max_retries - 1:
-                wait_time = (attempt + 1) * 2
-                time.sleep(wait_time)
-            else:
-                raise Exception(f"request failed: {str(e)}")
-
-    raise Exception("max retries exceeded")
-
-
-def fetch_stock_data(stock, date, db, holidays):
+def fetch_broker_distribution_data(stock, date, db):
     try:
-        market_data = get_market_detectors(stock, date=date)
-        market_data = market_data.get("data", {})
-        db.marketdetectors.update_one(
+        distribution_data = get_broker_distribution(stock, date)
+        distribution_data = distribution_data.get("data", {})
+
+        db.brokerdistribution.update_one(
             {"date": date, "stock_code": stock},
-            {"$set": {**market_data, "date": date, "stock_code": stock}},
+            {"$set": {**distribution_data, "date": date, "stock_code": stock}},
             upsert=True,
         )
-
-        # fetch orderbook only for today (cannot be backfilled)
-        trading_date = get_trading_date(holidays)
-        if date == trading_date:
-            orderbook_data = get_orderbook(stock)
-            orderbook_data = orderbook_data.get("data", {})
-            db.orderbook.update_one(
-                {"date": date, "stock_code": stock},
-                {"$set": {**orderbook_data, "date": date, "stock_code": stock}},
-                upsert=True,
-            )
 
         return {"status": "success", "stock": stock, "date": date}
 
@@ -121,7 +74,7 @@ def fetch_stock_data(stock, date, db, holidays):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="fetch stock data from stockbit api and save to mongodb"
+        description="fetch broker distribution data from stockbit api and save to mongodb"
     )
     parser.add_argument(
         "--start-date",
@@ -168,10 +121,10 @@ def main():
     total_requests = len(tasks)
 
     if len(trading_dates) == 1:
-        print(f"fetching data for {trading_dates[0]}")
+        print(f"fetching broker distribution for {trading_dates[0]}")
     else:
         print(
-            f"fetching data for {len(trading_dates)} trading days: {trading_dates[0]} to {trading_dates[-1]}"
+            f"fetching broker distribution for {len(trading_dates)} trading days: {trading_dates[0]} to {trading_dates[-1]}"
         )
     print(f"processing {len(stock_list)} stocks")
     print(f"total requests: {total_requests}")
@@ -184,7 +137,7 @@ def main():
 
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = {
-            executor.submit(fetch_stock_data, stock, date, db, holidays): (stock, date)
+            executor.submit(fetch_broker_distribution_data, stock, date, db): (stock, date)
             for stock, date in tasks
         }
 
@@ -196,9 +149,7 @@ def main():
                 print(f"[{i}/{total_requests}] {result['date']} {result['stock']} - ok")
             else:
                 failed += 1
-                print(
-                    f"[{i}/{total_requests}] {result['date']} {result['stock']} - failed: {result['error']}"
-                )
+                print(f"[{i}/{total_requests}] {result['date']} {result['stock']} - failed: {result['error']}")
 
             if i % 100 == 0:
                 elapsed = time.time() - start_time
@@ -214,7 +165,7 @@ def main():
     print(f"failed: {failed}/{total_requests} ({failed/total_requests*100:.1f}%)")
     print("\ndata saved to mongodb:")
     print("  - database: stockbit")
-    print("  - collections: marketdetectors, orderbook")
+    print("  - collection: brokerdistribution")
 
     client.close()
 

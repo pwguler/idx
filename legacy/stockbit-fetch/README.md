@@ -17,11 +17,11 @@ them in MongoDB for downstream analysis.
 | `fetch_idx_broker_summary.py` | IDX | `idxbrokersummary` | Broker buy/sell breakdown |
 | `fetch_idx_announcement.py` | IDX | `idxannouncement` | Official disclosures |
 | `fetch_idx_news_announcement.py` | IDX | `idxannouncement` | News disclosures |
-| `fetch_all_stocks.py` | Stockbit | `marketdetectors` | Bandar detector / broker summary |
-| `fetch_broker_distribution.py` | Stockbit | `brokerdistribution` | Smart-money flow by broker |
-| `fetch_keystats.py` | Stockbit | `keystats` | Fundamentals (PER, PBV, ROE, DER) |
-| `fetch_stock_profiles.py` | Stockbit | `stockprofiles` | Company info, sector, shareholders |
-| `fetch_trade_book.py` | Stockbit | `tradebook` | Trade executions by time |
+| `fetch_sb_market_detectors.py` | Stockbit | `marketdetectors` | Bandar detector / broker summary |
+| `fetch_sb_broker_distribution.py` | Stockbit | `brokerdistribution` | Smart-money flow by broker |
+| `fetch_sb_keystats.py` | Stockbit | `keystats` | Fundamentals (PER, PBV, ROE, DER) |
+| `fetch_sb_stock_profiles.py` | Stockbit | `stockprofiles` | Company info, sector, shareholders |
+| `fetch_sb_trade_book.py` | Stockbit | `tradebook` | Trade executions by time |
 
 ## Setup
 
@@ -76,6 +76,10 @@ Check status: `python scripts/token_refresh.py --show`
 
 # weekday-only daily runner (skips weekends + holidays in data/holidays.txt)
 ./scripts/run_daily.sh
+
+# historical backfill (newest-year-first, resumable)
+./scripts/backfill.sh --source stockbit --from 2016 --to 2024 --workers 5
+./scripts/backfill.sh --source idx --from 2020 --to 2024
 ```
 
 ## Layout
@@ -83,7 +87,7 @@ Check status: `python scripts/token_refresh.py --show`
 ```
 data/holidays.txt     # IDX holidays (skipped by the runners)
 data/stocklist.txt      # tickers to fetch
-scripts/          # fetch scripts + utils.py + token_refresh.py + runners
+scripts/          # fetch scripts + lib.py + token_refresh.py + runners
 ```
 
 ## Disclaimer

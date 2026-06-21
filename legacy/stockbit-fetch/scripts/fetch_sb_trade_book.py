@@ -8,7 +8,7 @@ import requests
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
-from utils import get_trading_dates, load_holidays, load_stock_list
+from lib import get_trading_dates, load_holidays, load_stock_list
 
 _tls = __import__("threading").local()
 
@@ -25,12 +25,12 @@ BEARER_TOKEN = os.getenv("BEARER_TOKEN")
 BASE_URL = "https://exodus.stockbit.com"
 
 
-def get_broker_distribution(symbol, date, max_retries=3):
-    url = f"{BASE_URL}/order-trade/broker/distribution"
+def get_trade_book(symbol, date, group_by="GROUP_BY_TIME", time_interval="10m", max_retries=3):
+    url = f"{BASE_URL}/order-trade/trade-book"
 
     headers = {"authorization": f"Bearer {BEARER_TOKEN}", "user-agent": "curl/8.0.0"}
 
-    params = {"symbol": symbol, "date": date}
+    params = {"symbol": symbol, "date": date, "group_by": group_by, "time_interval": time_interval}
 
     for attempt in range(max_retries):
         try:
@@ -55,14 +55,14 @@ def get_broker_distribution(symbol, date, max_retries=3):
     raise Exception("max retries exceeded")
 
 
-def fetch_broker_distribution_data(stock, date, db):
+def fetch_trade_book_data(stock, date, group_by, time_interval, db):
     try:
-        distribution_data = get_broker_distribution(stock, date)
-        distribution_data = distribution_data.get("data", {})
+        trade_book_data = get_trade_book(stock, date, group_by, time_interval)
+        trade_book_data = trade_book_data.get("data", {})
 
-        db.brokerdistribution.update_one(
+        db.tradebook.update_one(
             {"date": date, "stock_code": stock},
-            {"$set": {**distribution_data, "date": date, "stock_code": stock}},
+            {"$set": {**trade_book_data, "date": date, "stock_code": stock}},
             upsert=True,
         )
 
@@ -74,7 +74,7 @@ def fetch_broker_distribution_data(stock, date, db):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="fetch broker distribution data from stockbit api and save to mongodb"
+        description="fetch trade book data from stockbit api and save to mongodb"
     )
     parser.add_argument(
         "--start-date",
@@ -94,6 +94,18 @@ def main():
     )
     parser.add_argument(
         "--workers", type=int, default=1, help="number of parallel workers"
+    )
+    parser.add_argument(
+        "--group-by",
+        type=str,
+        default="GROUP_BY_TIME",
+        help="group by option (default: GROUP_BY_TIME)",
+    )
+    parser.add_argument(
+        "--time-interval",
+        type=str,
+        default="10m",
+        help="time interval (default: 10m)",
     )
 
     args = parser.parse_args()
@@ -121,13 +133,15 @@ def main():
     total_requests = len(tasks)
 
     if len(trading_dates) == 1:
-        print(f"fetching broker distribution for {trading_dates[0]}")
+        print(f"fetching trade book for {trading_dates[0]}")
     else:
         print(
-            f"fetching broker distribution for {len(trading_dates)} trading days: {trading_dates[0]} to {trading_dates[-1]}"
+            f"fetching trade book for {len(trading_dates)} trading days: {trading_dates[0]} to {trading_dates[-1]}"
         )
     print(f"processing {len(stock_list)} stocks")
     print(f"total requests: {total_requests}")
+    print(f"group_by: {args.group_by}")
+    print(f"time_interval: {args.time_interval}")
     print(f"parallel workers: {args.workers}")
     print(f"mongodb: {args.mongo_uri}\n")
 
@@ -137,7 +151,7 @@ def main():
 
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = {
-            executor.submit(fetch_broker_distribution_data, stock, date, db): (stock, date)
+            executor.submit(fetch_trade_book_data, stock, date, args.group_by, args.time_interval, db): (stock, date)
             for stock, date in tasks
         }
 
@@ -165,7 +179,7 @@ def main():
     print(f"failed: {failed}/{total_requests} ({failed/total_requests*100:.1f}%)")
     print("\ndata saved to mongodb:")
     print("  - database: stockbit")
-    print("  - collection: brokerdistribution")
+    print("  - collection: tradebook")
 
     client.close()
 

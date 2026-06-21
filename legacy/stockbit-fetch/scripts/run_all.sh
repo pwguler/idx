@@ -87,17 +87,17 @@ run_script() {
 
 # 1. fetch keystats
 if should_run "keystats"; then
-    run_script "keystats" "fetch_keystats.py" || true
+    run_script "keystats" "fetch_sb_keystats.py" || true
 fi
 
 # 2. fetch stock profiles
 if should_run "profiles"; then
-    run_script "stock profiles" "fetch_stock_profiles.py" || true
+    run_script "stock profiles" "fetch_sb_stock_profiles.py" || true
 fi
 
 # 3. fetch all stocks data
 if should_run "allstocks"; then
-    run_script "all stocks data" "fetch_all_stocks.py" || true
+    run_script "all stocks data" "fetch_sb_market_detectors.py" || true
 fi
 
 # 4. fetch IDX stock summary
@@ -112,12 +112,12 @@ fi
 
 # 6. fetch broker distribution
 if should_run "brokerdist"; then
-    run_script "broker distribution" "fetch_broker_distribution.py" || true
+    run_script "broker distribution" "fetch_sb_broker_distribution.py" || true
 fi
 
 # 7. fetch trade book
 if should_run "tradebook"; then
-    run_script "trade book" "fetch_trade_book.py" || true
+    run_script "trade book" "fetch_sb_trade_book.py" || true
 fi
 
 # 8. fetch IDX announcements

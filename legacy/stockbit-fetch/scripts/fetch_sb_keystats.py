@@ -7,7 +7,7 @@ import requests
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
-from utils import get_trading_date, load_holidays, load_stock_list
+from lib import get_trading_date, load_holidays, load_stock_list
 
 _tls = __import__("threading").local()
 

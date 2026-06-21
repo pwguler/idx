@@ -5,7 +5,7 @@ from datetime import datetime
 from playwright.sync_api import sync_playwright
 from pymongo import MongoClient
 
-from utils import get_trading_dates, load_holidays
+from lib import get_trading_dates, load_holidays
 
 URL = "https://www.idx.co.id/en/market-data/trading-summary/broker-summary/"
 BASE_API = (
