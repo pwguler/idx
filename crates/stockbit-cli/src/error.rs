@@ -11,6 +11,12 @@ pub enum Error {
     #[error("Stockbit API returned status {status}: {body}")]
     Api { status: u16, body: String },
 
+    #[error("Yahoo Finance returned status {status}: {body}")]
+    Yahoo { status: u16, body: String },
+
+    #[error("could not obtain a Yahoo crumb (auth handshake failed)")]
+    Crumb,
+
     #[error("invalid URL: {0}")]
     Url(#[from] url::ParseError),
 
@@ -37,7 +43,9 @@ impl Error {
     #[must_use]
     pub fn is_transient(&self) -> bool {
         match self {
-            Self::Api { status, .. } => *status == 429 || (500..600).contains(status),
+            Self::Api { status, .. } | Self::Yahoo { status, .. } => {
+                *status == 429 || (500..600).contains(status)
+            }
             Self::Http(e) => e.is_timeout() || e.is_connect() || e.is_request(),
             _ => false,
         }

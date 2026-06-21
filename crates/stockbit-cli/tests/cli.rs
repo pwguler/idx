@@ -219,3 +219,74 @@ async fn shareholders_404_surfaces_null_marker() {
     .await
     .unwrap();
 }
+
+#[tokio::test]
+async fn yf_daily_works_without_any_token() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v8/finance/chart/BBRI.JK"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "chart": {"error": null, "result": [{
+                "meta": {"gmtoffset": 25200},
+                "timestamp": [1_609_459_200_i64],
+                "indicators": {"quote": [{
+                    "open":[4000.0],"high":[4100.0],"low":[3950.0],"close":[4050.0],"volume":[1000]
+                }], "adjclose": [{"adjclose":[4050.0]}]}
+            }]}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let uri = server.uri();
+    tokio::task::spawn_blocking(move || {
+        // No --token, no env token: yahoo must not require Stockbit auth.
+        bin()
+            .env_remove("STOCKBIT_BEARER_TOKEN")
+            .env("STOCKBIT_YF_BASE_URL", &uri)
+            .args(["yf-daily", "bbri"])
+            .assert()
+            .success()
+            .stdout(contains("\"date\":\"2021-01-01\""))
+            .stdout(contains("\"symbol\":\"BBRI.JK\""));
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn yf_summary_runs_full_crumb_handshake_through_binary() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/v1/test/getcrumb"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("cr-1"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/v10/finance/quoteSummary/BBRI.JK"))
+        .and(query_param("crumb", "cr-1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "quoteSummary": {"error": null, "result": [{"financialData": {"currentPrice": 4020.0}}]}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let uri = server.uri();
+    tokio::task::spawn_blocking(move || {
+        bin()
+            .env_remove("STOCKBIT_BEARER_TOKEN")
+            .env("STOCKBIT_YF_BASE_URL", &uri)
+            .args(["yf-summary", "bbri"])
+            .assert()
+            .success()
+            .stdout(contains("\"currentPrice\":4020"));
+    })
+    .await
+    .unwrap();
+}

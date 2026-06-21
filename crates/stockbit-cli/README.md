@@ -1,6 +1,8 @@
 # stockbit-cli
 
-CLI wrapping the [Stockbit](https://stockbit.com) `exodus` REST API. Prints raw JSON to stdout.
+CLI for [Stockbit](https://stockbit.com)'s `exodus` REST API and [Yahoo Finance](https://finance.yahoo.com). Prints raw JSON to stdout.
+
+Stockbit commands need a bearer token; Yahoo commands (`yf-*`) need none.
 
 ## Install
 
@@ -59,9 +61,19 @@ stockbit broker-distribution  <SYMBOL> --date YYYY-MM-DD
 stockbit trade-book           <SYMBOL> --date YYYY-MM-DD
                                        [--group-by G] [--time-interval 10m]
 stockbit shareholders         <SYMBOL>
+
+# Yahoo Finance (no token required)
+stockbit yf-daily             <SYMBOL> [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--range 1mo]
+stockbit yf-quote             <SYMBOL>                           # latest snapshot (chart meta)
+stockbit yf-summary           <SYMBOL>                           # fundamentals & profile
+stockbit yf-analyst           <SYMBOL>                           # recommendations, targets, estimates
 ```
 
 Global flags: `--token`, `--base-url`, `--pretty`/`-p`, `-v`/`-vv`/`-vvv`.
+
+`yf-daily` and `yf-quote` use Yahoo's open chart API. `yf-summary` and `yf-analyst`
+hit `quoteSummary`, which requires a cookie + crumb handshake — the CLI performs it
+automatically (mirroring the `yfinance` library). Symbols are auto-suffixed with `.JK`.
 
 ### Examples
 
@@ -81,6 +93,14 @@ stockbit trade-book BBRI --date 2026-05-26 > bbri-tb.json
 for s in BBRI BBCA BMRI; do
   stockbit emitten "$s" > "data/$s.json"
 done
+
+# Yahoo daily OHLCV for a window (no token), closes piped through jq
+stockbit yf-daily BBRI --from 2026-01-01 --to 2026-03-31 \
+  | jq '.daily[] | {date, close}'
+
+# Latest snapshot + fundamentals (crumb handshake is automatic)
+stockbit yf-quote BBRI
+stockbit -p yf-summary BBRI
 ```
 
 ## Development
@@ -88,12 +108,12 @@ done
 ```bash
 cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
-cargo test                       # unit + hermetic CLI tests (no network)
+cargo test                       # unit + hermetic CLI/Yahoo tests (no network)
 cargo test --test stockbit       # end-to-end against real Stockbit
-                                 # (skipped automatically if no token)
+                                 # (skips when no token; needs a VALID token to pass)
 ```
 
-The end-to-end tests use [`wiremock`](https://crates.io/crates/wiremock) for the unit suite and hit real `exodus.stockbit.com` for the integration suite (gated on `STOCKBIT_BEARER_TOKEN`).
+The hermetic suites (`api`, `cli`, `yahoo`, …) use [`wiremock`](https://crates.io/crates/wiremock) and never touch the network. Only `tests/stockbit.rs` hits real `exodus.stockbit.com`: it skips when `STOCKBIT_BEARER_TOKEN` (or the stored config) has no token, but a **stale** token makes it run and fail with `401` — run `STOCKBIT_BEARER_TOKEN= cargo test` to force-skip it.
 
 ## Upstream quirks worth knowing
 
@@ -102,3 +122,5 @@ The end-to-end tests use [`wiremock`](https://crates.io/crates/wiremock) for the
 - `shareholders` returns 404 for ETFs and suspended issues; the CLI surfaces this as `{"data": null, "_note": "..."}` rather than an error.
 - Retries on `5xx`, `429`, network timeouts; never on `4xx` (apart from the 404 case above).
 - IDX trading days only: avoid weekends and Indonesian public holidays for date-bounded endpoints.
+- Yahoo `yf-daily` is split/dividend adjusted (includes `adjclose`); dates are rendered in the exchange timezone via `meta.gmtoffset`.
+- Yahoo `quoteSummary` (used by `yf-summary`/`yf-analyst`) can rate-limit or change its crumb scheme; failures surface as `Yahoo`/`crumb` errors rather than silent empties.
