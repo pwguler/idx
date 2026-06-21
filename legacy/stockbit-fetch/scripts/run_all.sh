@@ -4,7 +4,8 @@
 # usage: ./run_all.sh [--only script1,script2,...] [options]
 #
 # available scripts:
-#   keystats, profiles, allstocks, idxstock, idxbroker, brokerdist, tradebook, idxann, idxnews
+#   keystats, profiles, allstocks, idxstock, idxbroker, brokerdist, tradebook, idxann, idxnews,
+#   yfdaily, yfindicators, yfsummary, yfanalyst
 #
 # examples:
 #   ./run_all.sh                          # run all scripts
@@ -128,6 +129,26 @@ fi
 # 9. fetch IDX news/pengumuman
 if should_run "idxnews"; then
     run_script "IDX news announcements" "fetch_idx_news_announcement.py" || true
+fi
+
+# 10. yahoo finance daily OHLCV
+if should_run "yfdaily"; then
+    run_script "yahoo daily" "fetch_yf_daily.py" || true
+fi
+
+# 11. yahoo indicators (derived from yfdaily — run after yfdaily)
+if should_run "yfindicators"; then
+    run_script "yahoo indicators" "fetch_yf_indicators.py" || true
+fi
+
+# 12. yahoo fundamentals/profile
+if should_run "yfsummary"; then
+    run_script "yahoo summary" "fetch_yf_summary.py" || true
+fi
+
+# 13. yahoo analyst data
+if should_run "yfanalyst"; then
+    run_script "yahoo analyst" "fetch_yf_analyst.py" || true
 fi
 
 echo "====================================="

@@ -7,7 +7,7 @@ sources — the official **IDX** website and the **Stockbit** API — and stores
 them in MongoDB for downstream analysis.
 
 > Note: roughly half the scripts scrape IDX directly (via a headed Chromium);
-> the rest use the Stockbit API. Despite the name, this is not Stockbit-only.
+> the rest use the Stockbit API, plus Yahoo Finance. Despite the name, this is not Stockbit-only.
 
 ## What it fetches
 
@@ -22,6 +22,10 @@ them in MongoDB for downstream analysis.
 | `fetch_sb_keystats.py` | Stockbit | `keystats` | Fundamentals (PER, PBV, ROE, DER) |
 | `fetch_sb_stock_profiles.py` | Stockbit | `stockprofiles` | Company info, sector, shareholders |
 | `fetch_sb_trade_book.py` | Stockbit | `tradebook` | Trade executions by time |
+| `fetch_yf_daily.py` | Yahoo | `yfdaily` | Daily OHLCV (split/div adjusted) |
+| `fetch_yf_indicators.py` | derived | `yfindicators` | SMA/EMA/RSI/MACD/BB/ATR (from yfdaily) |
+| `fetch_yf_summary.py` | Yahoo | `yfsummary` | Fundamentals & profile |
+| `fetch_yf_analyst.py` | Yahoo | `yfanalyst` | Analyst recs, targets, estimates |
 
 ## Setup
 
