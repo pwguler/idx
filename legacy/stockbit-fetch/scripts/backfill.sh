@@ -27,12 +27,6 @@ if [[ -z "$SOURCE" || -z "$FROM" || -z "$TO" ]]; then
     exit 1
 fi
 
-# IDX scrapers need a display; re-exec under a virtual one (sentinel avoids loop).
-if [ -z "${SB_XVFB:-}" ] && command -v xvfb-run >/dev/null 2>&1; then
-    export SB_XVFB=1
-    exec xvfb-run -a "$SELF" --source "$SOURCE" --from "$FROM" --to "$TO" --workers "$WORKERS"
-fi
-
 cd "$(dirname "$SELF")"
 
 LOG="/tmp/backfill_${SOURCE}.log"

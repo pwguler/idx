@@ -6,8 +6,9 @@ Pulls daily OHLCV, broker activity, fundamentals, and disclosures from two
 sources — the official **IDX** website and the **Stockbit** API — and stores
 them in MongoDB for downstream analysis.
 
-> Note: roughly half the scripts scrape IDX directly (via a headed Chromium);
-> the rest use the Stockbit API, plus Yahoo Finance. Despite the name, this is not Stockbit-only.
+> Note: roughly half the scripts fetch IDX directly (via curl_cffi Chrome TLS
+> impersonation — no browser needed); the rest use the Stockbit API, plus Yahoo
+> Finance. Despite the name, this is not Stockbit-only.
 
 ## What it fetches
 
@@ -31,7 +32,6 @@ them in MongoDB for downstream analysis.
 
 ```bash
 pip install -r requirements.txt
-playwright install chromium      # for the IDX scrapers
 cp .env.example .env             # then fill in values
 ```
 
@@ -71,7 +71,7 @@ Check status: `python scripts/token_refresh.py --show`
 ## Usage
 
 ```bash
-# run everything (IDX scrapers need a display; auto-wrapped in xvfb)
+# run everything
 ./scripts/run_all.sh
 
 # subset

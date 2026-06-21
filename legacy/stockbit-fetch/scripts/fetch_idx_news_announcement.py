@@ -1,18 +1,18 @@
 """Fetch IDX news disclosures into MongoDB.
 
-Source: idx.co.id news announcements, scraped via headed Chromium (Playwright).
-Collection: `idxannouncement` (shared with official disclosures). Rolling ~3yr
-retention.
+Source: idx.co.id news announcements, fetched via curl_cffi Chrome TLS
+impersonation (no browser needed). Collection: `idxannouncement` (shared with
+official disclosures). Rolling ~3yr retention.
 """
 
 import argparse
 import time
 from datetime import datetime, timedelta
 
-from playwright.sync_api import sync_playwright
 from pymongo import MongoClient
 
-URL = "https://www.idx.co.id/id/berita/pengumuman"
+from idx_http import get_json
+
 BASE_API = "https://www.idx.co.id/primary/NewsAnnouncement/GetAllAnnouncement"
 
 def get_last_inserted_date(db):
@@ -25,7 +25,7 @@ def get_last_inserted_date(db):
     return None
 
 
-def fetch_announcements(page, start_date, end_date, page_size=200):
+def fetch_announcements(start_date, end_date, page_size=200):
     """Fetch all announcements via pagination, filtered by date range"""
     all_items = []
     page_num = 1
@@ -41,19 +41,7 @@ def fetch_announcements(page, start_date, end_date, page_size=200):
         api_url = f"{BASE_API}{params}"
 
         try:
-            result = page.evaluate(
-                f"""
-                async () => {{
-                    const r = await fetch("{api_url}", {{
-                        credentials: "include"
-                    }});
-                    if (!r.ok) {{
-                        throw new Error("HTTP " + r.status);
-                    }}
-                    return await r.json();
-                }}
-            """
-            )
+            result = get_json(api_url)
         except Exception as e:
             print(f"  page {page_num} failed: {e}")
             break
@@ -222,35 +210,16 @@ def main():
     start_time = time.time()
 
     try:
-        with sync_playwright() as p:
-            browser = p.firefox.launch(headless=False)
+        print("fetching announcements...")
+        announcements = fetch_announcements(start_date, end_date)
 
-            context = browser.new_context(
-                user_agent=(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) "
-                    "Gecko/20100101 Firefox/128.0"
-                )
-            )
+        print(f"  found {len(announcements)} announcements in date range")
 
-            page = context.new_page()
-            print("navigating to IDX...")
-            page.goto(URL, wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_timeout(4000)
-
-            print("fetching announcements...")
-            announcements = fetch_announcements(
-                page, start_date, end_date
-            )
-
-            print(f"  found {len(announcements)} announcements in date range")
-
-            if announcements:
-                saved = save_to_mongodb(announcements, db)
-                print(f"  saved {saved} to mongodb")
-            else:
-                print("  no new announcements")
-
-            browser.close()
+        if announcements:
+            saved = save_to_mongodb(announcements, db)
+            print(f"  saved {saved} to mongodb")
+        else:
+            print("  no new announcements")
 
         elapsed = time.time() - start_time
 
