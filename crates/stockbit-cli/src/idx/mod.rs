@@ -16,11 +16,11 @@ use std::time::Duration;
 
 use serde_json::Value;
 use url::Url;
-use wreq::header::{COOKIE, HeaderMap, HeaderValue};
+use wreq::header::{CONTENT_TYPE, COOKIE, HeaderMap, HeaderValue};
 use wreq_util::Emulation;
 
 use crate::error::{Error, Result};
-use crate::retry::with_backoff;
+use crate::transport::{self, RawResponse, RetryPolicy, Source};
 
 pub mod broker_summary;
 pub mod stock_summary;
@@ -31,8 +31,7 @@ const REAL_BASE: &str = "https://www.idx.co.id";
 pub struct IdxClient {
     inner: wreq::Client,
     base: Url,
-    max_retries: u32,
-    retry_base: Duration,
+    retry: RetryPolicy,
 }
 
 impl IdxClient {
@@ -77,50 +76,27 @@ impl IdxClient {
         Ok(Self {
             inner,
             base: crate::util::with_trailing_slash(base)?,
-            max_retries: 3,
-            retry_base: Duration::from_secs(2),
+            retry: RetryPolicy::default(),
         })
     }
 
     /// Override the retry backoff base (tests drive retries fast).
     #[must_use]
     pub fn with_retry_base(mut self, d: Duration) -> Self {
-        self.retry_base = d;
+        self.retry.base = d;
         self
     }
 
     async fn get_json(&self, path: &str, query: &[(&str, &str)]) -> Result<Value> {
         let mut url = self.base.join(path.trim_start_matches('/'))?;
         url.query_pairs_mut().extend_pairs(query);
-        with_backoff(self.max_retries, self.retry_base, |_| {
-            let url = url.clone();
-            async move {
-                let resp = self.inner.get(url).send().await?;
-                let status = resp.status();
-                let is_html = resp
-                    .headers()
-                    .get(wreq::header::CONTENT_TYPE)
-                    .and_then(|v| v.to_str().ok())
-                    .is_some_and(|ct| ct.contains("text/html"));
-                if status.is_success() && !is_html {
-                    return Ok(resp.json::<Value>().await?);
-                }
-                let body = resp.text().await.unwrap_or_default();
-                // A 403 / HTML body / interstitial marker means Cloudflare blocked us.
-                if status.as_u16() == 403
-                    || is_html
-                    || body.contains("Just a moment")
-                    || body.contains("challenge-platform")
-                {
-                    return Err(Error::IdxChallenge);
-                }
-                Err(Error::Idx {
-                    status: status.as_u16(),
-                    body: crate::util::truncate(&body, 500),
-                })
-            }
-        })
-        .await
+        transport::get_json(self, &url, self.retry).await
+    }
+
+    fn is_html(raw: &RawResponse) -> bool {
+        raw.content_type
+            .as_deref()
+            .is_some_and(|ct| ct.contains("text/html"))
     }
 
     /// `GET /primary/TradingSummary/{endpoint}` with the standard paging params and
@@ -135,5 +111,40 @@ impl IdxClient {
             query.push(("date", &compact));
         }
         self.get_json(&path, &query).await
+    }
+}
+
+impl Source for IdxClient {
+    async fn send(&self, url: &Url) -> Result<RawResponse> {
+        let resp = self.inner.get(url.clone()).send().await?;
+        Ok(RawResponse {
+            status: resp.status().as_u16(),
+            content_type: resp
+                .headers()
+                .get(CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok())
+                .map(String::from),
+            body: resp.text().await.unwrap_or_default(),
+        })
+    }
+
+    fn inspect(&self, raw: &RawResponse) -> Option<Error> {
+        let is_html = Self::is_html(raw);
+        if (200..300).contains(&raw.status) && !is_html {
+            return None;
+        }
+        // A 403 / HTML body / interstitial marker means Cloudflare blocked us.
+        if raw.status == 403
+            || is_html
+            || raw.body.contains("Just a moment")
+            || raw.body.contains("challenge-platform")
+        {
+            return Some(Error::IdxChallenge);
+        }
+        None
+    }
+
+    fn upstream_error(&self, status: u16, body: String) -> Error {
+        Error::Idx { status, body }
     }
 }

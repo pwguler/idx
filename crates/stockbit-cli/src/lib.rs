@@ -15,5 +15,6 @@ pub mod idx;
 pub mod output;
 pub mod retry;
 pub mod stored_config;
+mod transport;
 mod util;
 pub mod yahoo;

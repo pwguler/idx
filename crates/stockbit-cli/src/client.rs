@@ -5,21 +5,20 @@
 
 use std::time::Duration;
 
-use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue, USER_AGENT};
+use reqwest::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue, USER_AGENT};
 use serde::Serialize;
 use serde_json::Value;
 use url::Url;
 
 use crate::config::Config;
 use crate::error::{Error, Result};
-use crate::retry::with_backoff;
+use crate::transport::{self, RawResponse, RetryPolicy, Source};
 
 #[derive(Debug, Clone)]
 pub struct Client {
     inner: reqwest::Client,
     base: Url,
-    max_retries: u32,
-    retry_base: Duration,
+    retry: RetryPolicy,
 }
 
 impl Client {
@@ -57,15 +56,17 @@ impl Client {
         Ok(Self {
             inner,
             base,
-            max_retries: cfg.max_retries,
-            retry_base: Duration::from_secs(2),
+            retry: RetryPolicy {
+                max_retries: cfg.max_retries,
+                ..RetryPolicy::default()
+            },
         })
     }
 
     /// Override the retry backoff base. Tests use this to drive retries fast.
     #[must_use]
     pub fn with_retry_base(mut self, d: Duration) -> Self {
-        self.retry_base = d;
+        self.retry.base = d;
         self
     }
 
@@ -89,20 +90,28 @@ impl Client {
     /// Returns [`Error::Api`] for non-success status codes (after retries),
     /// [`Error::Http`] for network failures, [`Error::Json`] for malformed payloads.
     pub async fn get_json<Q: Serialize + ?Sized>(&self, path: &str, query: &Q) -> Result<Value> {
-        let url = self.url(path)?;
-        with_backoff(self.max_retries, self.retry_base, |_| async {
-            let resp = self.inner.get(url.clone()).query(query).send().await?;
-            let status = resp.status();
-            if status.is_success() {
-                Ok(resp.json::<Value>().await?)
-            } else {
-                let body = resp.text().await.unwrap_or_default();
-                Err(Error::Api {
-                    status: status.as_u16(),
-                    body: crate::util::truncate(&body, 500),
-                })
-            }
+        // Let reqwest serialize `query` onto the URL (its own serde_urlencoded
+        // rules), then hand the finished URL to the transport kernel.
+        let req = self.inner.get(self.url(path)?).query(query).build()?;
+        transport::get_json(self, req.url(), self.retry).await
+    }
+}
+
+impl Source for Client {
+    async fn send(&self, url: &Url) -> Result<RawResponse> {
+        let resp = self.inner.get(url.clone()).send().await?;
+        Ok(RawResponse {
+            status: resp.status().as_u16(),
+            content_type: resp
+                .headers()
+                .get(CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok())
+                .map(String::from),
+            body: resp.text().await.unwrap_or_default(),
         })
-        .await
+    }
+
+    fn upstream_error(&self, status: u16, body: String) -> Error {
+        Error::Api { status, body }
     }
 }

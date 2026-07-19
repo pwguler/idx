@@ -9,13 +9,13 @@
 
 use std::time::Duration;
 
-use reqwest::header::{ACCEPT, HeaderMap, HeaderValue, USER_AGENT};
+use reqwest::header::{ACCEPT, CONTENT_TYPE, HeaderMap, HeaderValue, USER_AGENT};
 use serde_json::Value;
 use url::Url;
 
 use crate::api::normalize_symbol;
 use crate::error::{Error, Result};
-use crate::retry::with_backoff;
+use crate::transport::{self, RawResponse, RetryPolicy, Source};
 
 pub mod analyst;
 pub mod daily;
@@ -39,8 +39,7 @@ pub struct YahooClient {
     chart_base: Url,
     query_base: Url,
     cookie_base: Url,
-    max_retries: u32,
-    retry_base: Duration,
+    retry: RetryPolicy,
 }
 
 impl YahooClient {
@@ -74,8 +73,7 @@ impl YahooClient {
             chart_base: crate::util::with_trailing_slash(chart_base)?,
             query_base: crate::util::with_trailing_slash(query_base)?,
             cookie_base: crate::util::with_trailing_slash(cookie_base)?,
-            max_retries: 3,
-            retry_base: Duration::from_secs(2),
+            retry: RetryPolicy::default(),
         })
     }
 
@@ -91,28 +89,12 @@ impl YahooClient {
     /// Override the retry backoff base (tests drive retries fast).
     #[must_use]
     pub fn with_retry_base(mut self, d: Duration) -> Self {
-        self.retry_base = d;
+        self.retry.base = d;
         self
     }
 
     async fn get_json(&self, url: Url) -> Result<Value> {
-        with_backoff(self.max_retries, self.retry_base, |_| {
-            let url = url.clone();
-            async move {
-                let resp = self.inner.get(url).send().await?;
-                let status = resp.status();
-                if status.is_success() {
-                    Ok(resp.json::<Value>().await?)
-                } else {
-                    let body = resp.text().await.unwrap_or_default();
-                    Err(Error::Yahoo {
-                        status: status.as_u16(),
-                        body: crate::util::truncate(&body, 500),
-                    })
-                }
-            }
-        })
-        .await
+        transport::get_json(self, &url, self.retry).await
     }
 
     /// Fetch the raw chart payload for `symbol` (`.JK` appended) with `query`.
@@ -167,6 +149,25 @@ impl YahooClient {
             .append_pair("modules", modules)
             .append_pair("crumb", &crumb);
         self.get_json(url).await
+    }
+}
+
+impl Source for YahooClient {
+    async fn send(&self, url: &Url) -> Result<RawResponse> {
+        let resp = self.inner.get(url.clone()).send().await?;
+        Ok(RawResponse {
+            status: resp.status().as_u16(),
+            content_type: resp
+                .headers()
+                .get(CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok())
+                .map(String::from),
+            body: resp.text().await.unwrap_or_default(),
+        })
+    }
+
+    fn upstream_error(&self, status: u16, body: String) -> Error {
+        Error::Yahoo { status, body }
     }
 }
 
