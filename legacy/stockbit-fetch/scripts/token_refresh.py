@@ -22,6 +22,8 @@ from datetime import datetime, timezone
 
 import requests
 
+import net
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STORE = os.path.join(REPO, ".sb_tokens.json")
 ENV = os.path.join(REPO, ".env")
@@ -100,7 +102,7 @@ def mirror_to_env(access):
 
 
 def do_refresh(refresh_token):
-    r = requests.post(
+    r = net.requests_session().post(
         REFRESH_URL,
         headers={"authorization": f"Bearer {refresh_token}", **REFRESH_HEADERS},
         timeout=30,

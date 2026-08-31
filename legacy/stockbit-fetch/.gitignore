@@ -22,3 +22,6 @@ data/calendar_cache/
 # OS
 .DS_Store
 Thumbs.db
+
+# host-specific runner (chat id, paths) — keep local
+scripts/cron_daily_fetch.sh

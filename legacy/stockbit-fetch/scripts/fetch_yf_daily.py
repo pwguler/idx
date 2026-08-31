@@ -15,6 +15,7 @@ import pandas as pd
 import yfinance as yf
 from pymongo import MongoClient, UpdateOne
 
+import net
 from lib import load_stock_list
 
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
@@ -80,7 +81,12 @@ def main():
     parser.add_argument(
         "--workers", type=int, default=1, help="number of parallel workers"
     )
+    net.add_cli_args(parser)
+
     args = parser.parse_args()
+    net.apply_cli_args(args)
+    print(net.describe())
+    net.apply_to_yfinance()
 
     # default: last 7 days through today (covers weekend/holiday gaps)
     start = args.start_date or (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")

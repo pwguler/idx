@@ -14,6 +14,7 @@ import requests
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
+import net
 from lib import get_trading_dates, load_holidays, load_stock_list
 
 _tls = __import__("threading").local()
@@ -21,7 +22,7 @@ _tls = __import__("threading").local()
 
 def _session():
     if not hasattr(_tls, "s"):
-        _tls.s = requests.Session()
+        _tls.s = net.requests_session()
     return _tls.s
 
 
@@ -102,7 +103,11 @@ def main():
         "--workers", type=int, default=1, help="number of parallel workers"
     )
 
+    net.add_cli_args(parser)
+
     args = parser.parse_args()
+    net.apply_cli_args(args)
+    print(net.describe())
 
     holidays = load_holidays()
 

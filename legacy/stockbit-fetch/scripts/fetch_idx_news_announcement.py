@@ -11,8 +11,8 @@ from datetime import datetime, timedelta
 
 from pymongo import MongoClient
 
-import idx_http
-from idx_http import get_json
+import net
+from net import get_json
 
 BASE_API = "https://www.idx.co.id/primary/NewsAnnouncement/GetAllAnnouncement"
 
@@ -176,11 +176,11 @@ def main():
         help="ignored (not supported)",
     )
 
-    idx_http.add_cli_args(parser)
+    net.add_cli_args(parser)
 
     args = parser.parse_args()
-    idx_http.apply_cli_args(args)
-    print(idx_http.describe())
+    net.apply_cli_args(args)
+    print(net.describe())
 
     client = MongoClient(args.mongo_uri)
     db = client.stockbit
