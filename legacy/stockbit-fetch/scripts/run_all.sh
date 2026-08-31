@@ -15,6 +15,11 @@
 #   ./run_all.sh --only brokerdist --start-date 2026-01-01 --end-date 2026-01-20
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# use project venv when present (system python3 has no deps on this host)
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+if [ -x "$REPO_DIR/.venv/bin/python" ]; then
+    export PATH="$REPO_DIR/.venv/bin:$PATH"
+fi
 START_TIME=$(date +%s)
 SUCCESS_COUNT=0
 FAILED_COUNT=0
@@ -83,6 +88,16 @@ if should_run "keystats"; then
     run_script "keystats" "fetch_sb_keystats.py" || true
 fi
 
+# 1a. yahoo fundamentals/profile (moved to front: fast ~1s/ticker, avoid timeout tail)
+if should_run "yfsummary"; then
+    run_script "yahoo summary" "fetch_yf_summary.py" || true
+fi
+
+# 1b. yahoo analyst data (moved to front)
+if should_run "yfanalyst"; then
+    run_script "yahoo analyst" "fetch_yf_analyst.py" || true
+fi
+
 # 2. fetch stock profiles
 if should_run "profiles"; then
     run_script "stock profiles" "fetch_sb_stock_profiles.py" || true
@@ -131,16 +146,6 @@ fi
 # 11. yahoo indicators (derived from yfdaily — run after yfdaily)
 if should_run "yfindicators"; then
     run_script "yahoo indicators" "fetch_yf_indicators.py" || true
-fi
-
-# 12. yahoo fundamentals/profile
-if should_run "yfsummary"; then
-    run_script "yahoo summary" "fetch_yf_summary.py" || true
-fi
-
-# 13. yahoo analyst data
-if should_run "yfanalyst"; then
-    run_script "yahoo analyst" "fetch_yf_analyst.py" || true
 fi
 
 echo "====================================="

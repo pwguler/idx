@@ -27,6 +27,18 @@ STORE = os.path.join(REPO, ".sb_tokens.json")
 ENV = os.path.join(REPO, ".env")
 REFRESH_URL = "https://exodus.stockbit.com/login/refresh"
 HEADERS_UA = "curl/8.0.0"
+# Browser-like headers: Cloudflare on exodus.stockbit.com rejects bare curl/okhttp
+# UA on /login/refresh (returns HTML challenge -> parsed as "expired"). Mimic the
+# web app so the refresh chain actually rotates.
+REFRESH_HEADERS = {
+    "accept": "application/json",
+    "origin": "https://stockbit.com",
+    "referer": "https://stockbit.com/",
+    "sec-ch-ua": '"Not;A=Brand";v="8", "Chromium";v="150", "Google Chrome";v="150"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+}
 
 
 def jwt_exp(token):
@@ -90,7 +102,7 @@ def mirror_to_env(access):
 def do_refresh(refresh_token):
     r = requests.post(
         REFRESH_URL,
-        headers={"authorization": f"Bearer {refresh_token}", "user-agent": HEADERS_UA},
+        headers={"authorization": f"Bearer {refresh_token}", **REFRESH_HEADERS},
         timeout=30,
     )
     if r.status_code != 200:

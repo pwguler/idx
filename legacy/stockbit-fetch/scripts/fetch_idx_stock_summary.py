@@ -12,6 +12,7 @@ from datetime import datetime
 
 from pymongo import MongoClient
 
+import idx_http
 from idx_http import get_json
 from lib import get_trading_dates, load_holidays
 
@@ -86,7 +87,11 @@ def main():
         help="ignored (not supported)",
     )
 
+    idx_http.add_cli_args(parser)
+
     args = parser.parse_args()
+    idx_http.apply_cli_args(args)
+    print(idx_http.describe())
 
     holidays = load_holidays()
 
