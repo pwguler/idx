@@ -91,6 +91,12 @@ def main():
     # default: last 7 days through today (covers weekend/holiday gaps)
     start = args.start_date or (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
     end = args.end_date  # None = up to latest
+    # yfinance's `end` is EXCLUSIVE. A single-day backfill (start == end, e.g.
+    # --start-date 2026-09-04 --end-date 2026-09-04) would otherwise silently
+    # return zero rows for every ticker. Bump end by one day so the requested
+    # day itself is included.
+    if end and end == start:
+        end = (datetime.strptime(end, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
 
     client = MongoClient(args.mongo_uri)
     db = client.stockbit
