@@ -59,7 +59,9 @@ def find_targets(db, only_date=None):
         query, {"_id": 0, "stock_code": 1, "date": 1}
     ):
         pairs.append((doc["stock_code"], doc["date"]))
-    return sorted(pairs, key=lambda p: (p[1], p[0]))
+    # Newest dates first: recent sessions are what analysis needs, so if the run
+    # cannot finish in one go, the important days are already restored.
+    return sorted(pairs, key=lambda p: (p[1], p[0]), reverse=True)
 
 
 def main():
