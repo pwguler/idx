@@ -80,6 +80,18 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="stop after N attempts (0 = all)")
     ap.add_argument("--date", default=None, help="only this date (YYYY-MM-DD)")
     ap.add_argument("--max-rounds", type=int, default=3, help="retry passes over failures")
+    ap.add_argument(
+        "--throttle-limit",
+        type=int,
+        default=12,
+        help="stop a pass after this many consecutive throttles, then cool down",
+    )
+    ap.add_argument(
+        "--cooldown",
+        type=float,
+        default=600.0,
+        help="seconds to pause between passes so the token budget refills",
+    )
     args = ap.parse_args()
 
     if args.rps:
@@ -120,9 +132,24 @@ def main():
             break
         if rnd > 1:
             log(f"--- retry round {rnd}: {len(pending)} pairs left ---")
-            time.sleep(60)
+        # Reset the per-pass counters. Without this the next pass starts already
+        # over the throttle limit, so it breaks immediately and burns only
+        # cooldowns without doing any work.
+        consec_throttle = 0
+        pace = args.pace
         nxt = []
         for i, (sym, date) in enumerate(pending, 1):
+            # The token hands out a burst of requests and then throttles. Pushing
+            # through the throttle only deepens the penalty, so stop the pass and
+            # let the budget refill before trying the rest again.
+            if consec_throttle >= args.throttle_limit:
+                nxt.extend(pending[i - 1 :])
+                log(
+                    f"  budget spent ({consec_throttle} throttles in a row) after "
+                    f"{written} written; pausing {args.cooldown:.0f}s"
+                )
+                break
+
             attempts += 1
             time.sleep(pace)
             try:
@@ -169,6 +196,9 @@ def main():
                     f"elapsed={el/60:.1f}m eta~{eta/60:.1f}m"
                 )
         pending = nxt
+        if pending and rnd < args.max_rounds:
+            log(f"--- cooldown {args.cooldown:.0f}s before round {rnd + 1} ---")
+            time.sleep(args.cooldown)
 
     el = time.time() - start
     log("--- done ---")
