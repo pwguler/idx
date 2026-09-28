@@ -22,7 +22,7 @@ Usage in a fetcher:
 
     session = net.requests_session()  # requests, proxy applied
     net.apply_to_yfinance()           # yfinance, proxy applied
-    data = net.get_json(url)          # curl_cffi + Chrome TLS (IDX)
+    data = net.get_json(url)          # curl_cffi + browser TLS (IDX)
 """
 
 import os
@@ -116,33 +116,65 @@ def apply_to_yfinance():
         return True
 
 
-# Chrome TLS impersonation. idx.co.id fingerprints the handshake, so a plain
+# Browser TLS impersonation. idx.co.id fingerprints the handshake, so a plain
 # requests/urllib GET is rejected before the proxy hop even matters.
-IMPERSONATE = "chrome124"
+#
+# Measured 2026-09-29 through the Indonesian SOCKS5: the *iOS Safari* fingerprint
+# is served (200 + JSON) while chrome124/131/136, safari17_0 and edge101 all get
+# 403 cf-mitigated:challenge. That is why every Chrome-flavoured client failed.
+# Override with IDX_IMPERSONATE when Cloudflare rotates its rules again.
+IMPERSONATE = (os.environ.get("IDX_IMPERSONATE") or "safari18_0").strip()
+IMPERSONATE_FALLBACKS = ("chrome131", "chrome124")
+
+# The UA alone is not enough: idx.co.id also wants a request that looks like the
+# XHR the page itself makes. Without these headers the same identity that returns
+# 200 with them gets 403 cf-mitigated:challenge (measured 2026-09-29).
+DEFAULT_HEADERS = {
+    "accept": "application/json, text/plain, */*",
+    "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+    "referer": "https://www.idx.co.id/",
+}
 
 
 def get_json(url, retries=3, timeout=30):
-    """GET url with Chrome TLS impersonation, return parsed JSON.
+    """GET url with browser TLS impersonation, return parsed JSON.
 
-    Used for idx.co.id, which sits behind Cloudflare. Retries with linear
-    backoff and raises after the last attempt.
+    Used for idx.co.id, which sits behind Cloudflare: the TLS/HTTP2
+    fingerprint decides whether the request is served or challenged, so this
+    walks IMPERSONATE first and then IMPERSONATE_FALLBACKS. A 403 moves on to
+    the next identity immediately (retrying the same one never helps); other
+    failures retry with linear backoff. Raises after the last identity.
     """
     from curl_cffi import requests as creq
 
-    kwargs = {"impersonate": IMPERSONATE, "timeout": timeout}
+    kwargs = {"timeout": timeout, "headers": dict(DEFAULT_HEADERS)}
     px = proxies()
     if px:
         kwargs["proxies"] = px
 
-    last_err = None
-    for attempt in range(retries):
-        try:
-            r = creq.get(url, **kwargs)
-            r.raise_for_status()
-            return r.json()
-        except Exception as e:
-            last_err = e
-            if attempt < retries - 1:
-                time.sleep((attempt + 1) * 2)
+    identities = (IMPERSONATE,) + tuple(
+        i for i in IMPERSONATE_FALLBACKS if i != IMPERSONATE
+    )
 
-    raise RuntimeError(f"request failed ({describe()}): {url}") from last_err
+    last_err = None
+    # Cloudflare challenges in bursts rather than permanently: a run of quick
+    # requests can start answering 403 for every identity, then recover on its
+    # own a few seconds later. Cycle the identities and wait it out instead of
+    # giving up on the first bad patch.
+    for cycle in range(retries):
+        for imp in identities:
+            try:
+                r = creq.get(url, impersonate=imp, **kwargs)
+                if r.status_code == 403:
+                    last_err = RuntimeError(f"403 for impersonate={imp}")
+                    continue  # fingerprint rejected: try the next identity
+                r.raise_for_status()
+                return r.json()
+            except Exception as e:
+                last_err = e
+        if cycle < retries - 1:
+            time.sleep(10 * (cycle + 1))
+
+    raise RuntimeError(
+        f"request failed ({describe()}, impersonate={identities}): {url}"
+    ) from last_err
