@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from pymongo import MongoClient
 
 import net
-from lib import get_trading_dates, load_holidays, load_stock_list
+from lib import Throttled, get_trading_dates, is_stub_payload, load_holidays, load_stock_list
 
 _tls = __import__("threading").local()
 
@@ -67,6 +67,11 @@ def fetch_broker_distribution_data(stock, date, db):
         distribution_data = get_broker_distribution(stock, date)
         distribution_data = distribution_data.get("data", {})
 
+        # Last line of defence at the write site: a throttled run used to upsert
+        # the empty stub over a real day and still count 958/958.
+        if is_stub_payload(distribution_data):
+            raise Throttled("empty stub at write site - not written")
+
         db.brokerdistribution.update_one(
             {"date": date, "stock_code": stock},
             {"$set": {**distribution_data, "date": date, "stock_code": stock}},
@@ -75,6 +80,8 @@ def fetch_broker_distribution_data(stock, date, db):
 
         return {"status": "success", "stock": stock, "date": date}
 
+    except Throttled as e:
+        return {"status": "throttled", "stock": stock, "date": date, "error": str(e)}
     except Exception as e:
         return {"status": "failed", "stock": stock, "date": date, "error": str(e)}
 
@@ -144,6 +151,7 @@ def main():
 
     success = 0
     failed = 0
+    throttled = 0
     start_time = time.time()
 
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
@@ -158,6 +166,11 @@ def main():
             if result["status"] == "success":
                 success += 1
                 print(f"[{i}/{total_requests}] {result['date']} {result['stock']} - ok")
+            elif result["status"] == "throttled":
+                throttled += 1
+                print(
+                    f"[{i}/{total_requests}] {result['date']} {result['stock']} - throttled (not written)"
+                )
             else:
                 failed += 1
                 print(f"[{i}/{total_requests}] {result['date']} {result['stock']} - failed: {result['error']}")
@@ -174,9 +187,20 @@ def main():
     print(f"\n\ndone in {elapsed/60:.1f} minutes!")
     print(f"success: {success}/{total_requests} ({success/total_requests*100:.1f}%)")
     print(f"failed: {failed}/{total_requests} ({failed/total_requests*100:.1f}%)")
+    print(
+        f"throttled (NOT written): {throttled}/{total_requests} "
+        f"({throttled/total_requests*100:.1f}%)"
+    )
     print("\ndata saved to mongodb:")
     print("  - database: stockbit")
     print("  - collection: brokerdistribution")
+
+    if throttled:
+        print(
+            f"\n!! {throttled} stock-days hit the rate limit and were LEFT UNWRITTEN "
+            "(no data destroyed). Re-run those dates, optionally with --pace, "
+            "to fill them in."
+        )
 
     client.close()
 

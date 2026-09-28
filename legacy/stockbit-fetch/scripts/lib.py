@@ -76,3 +76,51 @@ def load_stock_list(script_dir=None):
 
     with open(stock_list_path, "r") as f:
         return [line.strip() for line in f if line.strip()]
+
+
+class Throttled(Exception):
+    """Stockbit replied with the empty throttle stub instead of data.
+
+    Stockbit answers a rate-limited request with HTTP 200 and an empty body, not
+    with an error, so a fetcher that upserts whatever it gets will overwrite a
+    real trading day with empty rows while still reporting 958/958 (this is how
+    2026-09-02/07/16/17 were destroyed in brokerdistribution and tradebook).
+    Raise this instead and leave the day unwritten.
+    """
+
+
+# A genuine Stockbit answer echoes the requested range back, even for a stock
+# that did not trade that day, whose data lists are legitimately empty. The
+# throttle stub carries empty strings in these fields instead, so the echo -- not
+# the data list -- is what separates "no trades today" from "rate limited".
+RANGE_ECHO_KEYS = ("date_info", "start_date", "end_date", "from", "to")
+
+
+def is_stub_payload(payload, keys=RANGE_ECHO_KEYS):
+    """True when a Stockbit response body is the throttle stub, never data."""
+    if not isinstance(payload, dict) or not payload:
+        return True
+    return not any(str(payload.get(k) or "").strip() for k in keys)
+
+
+def is_empty_rows(payload, keys):
+    """True when none of `keys` carries any rows.
+
+    For endpoints that do not echo the requested range back (trade book: from/to
+    are always empty), an empty payload is the only signal available. Skipping it
+    costs an empty row for a stock that did not trade; writing it costs a real
+    day, so skip.
+    """
+    if not isinstance(payload, dict) or not payload:
+        return True
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, dict):
+            if any(value.values()):
+                return False
+        elif isinstance(value, (list, tuple)):
+            if len(value):
+                return False
+        elif value not in (None, "", 0, "0", "-"):
+            return False
+    return True

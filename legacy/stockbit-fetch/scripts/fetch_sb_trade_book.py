@@ -67,6 +67,13 @@ def fetch_trade_book_data(stock, date, group_by, time_interval, db):
         trade_book_data = get_trade_book(stock, date, group_by, time_interval)
         trade_book_data = trade_book_data.get("data", {})
 
+        # This endpoint does not echo the requested range back (from/to stay empty
+        # on real answers), so the stub is recognised by carrying no rows at all.
+        # A throttled run upserted those empty rows over a real day and still
+        # counted 958/958.
+        if is_empty_rows(trade_book_data, ("book", "book_total")):
+            raise Throttled("empty stub at write site - not written")
+
         db.tradebook.update_one(
             {"date": date, "stock_code": stock},
             {"$set": {**trade_book_data, "date": date, "stock_code": stock}},
@@ -75,6 +82,8 @@ def fetch_trade_book_data(stock, date, group_by, time_interval, db):
 
         return {"status": "success", "stock": stock, "date": date}
 
+    except Throttled as e:
+        return {"status": "throttled", "stock": stock, "date": date, "error": str(e)}
     except Exception as e:
         return {"status": "failed", "stock": stock, "date": date, "error": str(e)}
 
@@ -158,6 +167,7 @@ def main():
 
     success = 0
     failed = 0
+    throttled = 0
     start_time = time.time()
 
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
@@ -172,6 +182,11 @@ def main():
             if result["status"] == "success":
                 success += 1
                 print(f"[{i}/{total_requests}] {result['date']} {result['stock']} - ok")
+            elif result["status"] == "throttled":
+                throttled += 1
+                print(
+                    f"[{i}/{total_requests}] {result['date']} {result['stock']} - throttled (not written)"
+                )
             else:
                 failed += 1
                 print(f"[{i}/{total_requests}] {result['date']} {result['stock']} - failed: {result['error']}")
@@ -188,9 +203,20 @@ def main():
     print(f"\n\ndone in {elapsed/60:.1f} minutes!")
     print(f"success: {success}/{total_requests} ({success/total_requests*100:.1f}%)")
     print(f"failed: {failed}/{total_requests} ({failed/total_requests*100:.1f}%)")
+    print(
+        f"throttled (NOT written): {throttled}/{total_requests} "
+        f"({throttled/total_requests*100:.1f}%)"
+    )
     print("\ndata saved to mongodb:")
     print("  - database: stockbit")
     print("  - collection: tradebook")
+
+    if throttled:
+        print(
+            f"\n!! {throttled} stock-days hit the rate limit and were LEFT UNWRITTEN "
+            "(no data destroyed). Re-run those dates, optionally with --pace, "
+            "to fill them in."
+        )
 
     client.close()
 
