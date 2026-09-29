@@ -35,6 +35,10 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 # IDX_PROXY predates this module; keep reading it so older .env files still work.
 _proxy = (os.environ.get("FETCH_PROXY") or os.environ.get("IDX_PROXY") or "").strip()
+# Second proxy to fall back on. The 2026-09-29 08:00 token refresh died with
+# "Connection refused" from the primary SOCKS proxy while the other one was up,
+# so callers that must not fail (token refresh) walk these in order.
+_proxy_fallback = (os.environ.get("FETCH_PROXY_FALLBACK") or "").strip()
 
 
 def set_proxy(url):
@@ -51,6 +55,19 @@ def get_proxy():
 def proxies():
     """Mapping for requests/curl_cffi, or None when going direct."""
     return {"http": _proxy, "https": _proxy} if _proxy else None
+
+
+def proxy_candidates():
+    """Proxies to try in order: primary first, then the fallback.
+
+    Returns [] when both are empty (i.e. go direct).
+    """
+    seen, out = set(), []
+    for url in (_proxy, _proxy_fallback):
+        if url and url not in seen:
+            seen.add(url)
+            out.append(url)
+    return out
 
 
 def describe():

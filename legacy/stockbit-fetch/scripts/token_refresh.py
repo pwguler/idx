@@ -102,29 +102,65 @@ def mirror_to_env(access):
 
 
 def do_refresh(refresh_token):
-    r = net.requests_session().post(
-        REFRESH_URL,
-        headers={"authorization": f"Bearer {refresh_token}", **REFRESH_HEADERS},
-        timeout=30,
-    )
-    if r.status_code != 200:
-        raise SystemExit(
-            f"refresh failed: HTTP {r.status_code} {r.text[:200]} "
-            f"-> refresh token likely expired/consumed; re-seed needed"
+    """Rotate the token pair, walking every configured proxy before giving up.
+
+    The refresh token is one-time-use, so this must never retry AFTER Stockbit
+    has answered -- the rotation would already have consumed it. Only
+    connection-level failures (proxy down, DNS, timeout) move on to the next
+    candidate. That is what the 2026-09-29 08:00 run needed: the primary SOCKS
+    proxy refused connections while the fallback was reachable.
+    """
+    candidates = net.proxy_candidates() or [None]
+    last_err = None
+
+    for proxy in candidates:
+        session = net.requests_session()
+        if proxy:
+            session.proxies.update({"http": proxy, "https": proxy})
+        else:
+            session.proxies.clear()
+
+        try:
+            r = session.post(
+                REFRESH_URL,
+                headers={"authorization": f"Bearer {refresh_token}", **REFRESH_HEADERS},
+                timeout=30,
+            )
+        except Exception as e:
+            # No answer from Stockbit -> the token was NOT consumed, safe to
+            # try the next proxy.
+            last_err = e
+            print(
+                f"proxy {proxy or 'direct'} unreachable: {type(e).__name__}: {str(e)[:140]}",
+                flush=True,
+            )
+            continue
+
+        if r.status_code != 200:
+            raise SystemExit(
+                f"refresh failed: HTTP {r.status_code} {r.text[:200]} "
+                f"-> refresh token likely expired/consumed; re-seed needed"
+            )
+        data = r.json()["data"]
+        access = data["access"]["token"]
+        if "refresh" not in data:
+            raise SystemExit("no refresh token in response (rotation expected) - aborting")
+        new_refresh = data["refresh"]["token"]
+        save_store(
+            access,
+            new_refresh,
+            data["access"].get("expired_at"),
+            data["refresh"].get("expired_at"),
         )
-    data = r.json()["data"]
-    access = data["access"]["token"]
-    if "refresh" not in data:
-        raise SystemExit("no refresh token in response (rotation expected) - aborting")
-    new_refresh = data["refresh"]["token"]
-    save_store(
-        access,
-        new_refresh,
-        data["access"].get("expired_at"),
-        data["refresh"].get("expired_at"),
+        mirror_to_env(access)
+        return access, new_refresh, data["access"].get("expired_at"), data["refresh"].get("expired_at")
+
+    raise SystemExit(
+        f"refresh failed: no reachable proxy among {candidates} "
+        f"(last error: {type(last_err).__name__}: {str(last_err)[:140]}) "
+        "-> nothing was sent, the refresh token is NOT consumed; re-run when a "
+        "proxy is reachable."
     )
-    mirror_to_env(access)
-    return access, new_refresh, data["access"].get("expired_at"), data["refresh"].get("expired_at")
 
 
 def main():
