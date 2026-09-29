@@ -70,6 +70,52 @@ def proxy_candidates():
     return out
 
 
+_probe_cache = {"ts": 0.0, "url": None}
+
+
+def _tcp_reachable(url, timeout=2.0):
+    """Cheap liveness probe on a proxy URL (host:port connect)."""
+    import socket
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url if "://" in url else "socks5h://" + url)
+    host = parsed.hostname
+    port = parsed.port or (1080 if "socks" in (parsed.scheme or "") else 8080)
+    if not host:
+        return False
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def active_proxy(force=False, ttl=60.0):
+    """First reachable proxy from proxy_candidates(), cached for `ttl` seconds.
+
+    The pipeline used to pin a single proxy, so when that one dropped
+    (2026-09-29 08:00, [Errno 111] Connection refused) every fetch failed even
+    though the other proxy was up. When nothing answers this still returns the
+    primary, so going direct and error messages behave as before.
+    """
+    now = time.time()
+    if not force and _probe_cache["url"] and now - _probe_cache["ts"] < ttl:
+        return _probe_cache["url"]
+
+    candidates = proxy_candidates()
+    picked = next((url for url in candidates if _tcp_reachable(url)), None)
+    if picked is None and candidates:
+        picked = candidates[0]
+    _probe_cache.update({"ts": now, "url": picked})
+    return picked
+
+
+def active_proxies():
+    """Mapping for the currently reachable proxy, or None when going direct."""
+    url = active_proxy()
+    return {"http": url, "https": url} if url else None
+
+
 def describe():
     return f"net: via {_proxy}" if _proxy else "net: direct"
 
@@ -101,12 +147,13 @@ def apply_cli_args(args):
 
 
 def requests_session(session=None):
-    """Return a requests session with the proxy applied."""
+    """Return a requests session with the reachable proxy applied."""
     import requests
 
     s = session or requests.Session()
-    s.proxies.update(proxies() or {})
-    if not _proxy:
+    px = active_proxies()
+    s.proxies.update(px or {})
+    if not px:
         s.proxies.clear()
     return s
 
@@ -165,7 +212,7 @@ def get_json(url, retries=3, timeout=30):
     from curl_cffi import requests as creq
 
     kwargs = {"timeout": timeout, "headers": dict(DEFAULT_HEADERS)}
-    px = proxies()
+    px = active_proxies()
     if px:
         kwargs["proxies"] = px
 
@@ -189,8 +236,11 @@ def get_json(url, retries=3, timeout=30):
                 return r.json()
             except Exception as e:
                 last_err = e
-        if cycle < retries - 1:
-            time.sleep(10 * (cycle + 1))
+            if cycle < retries - 1:
+                # A dead proxy looks like any other connection error; re-probe
+                # so the next cycle can switch to the fallback.
+                kwargs["proxies"] = active_proxies() or kwargs.get("proxies")
+                time.sleep(10 * (cycle + 1))
 
     raise RuntimeError(
         f"request failed ({describe()}, impersonate={identities}): {url}"
