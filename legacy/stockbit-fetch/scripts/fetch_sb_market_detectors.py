@@ -121,7 +121,7 @@ def is_stub(payload, date=None):
 def get_market_detectors(symbol, date=None, limit=100, max_retries=3):
     url = f"{BASE_URL}/marketdetectors/{symbol}"
 
-    headers = {"authorization": f"Bearer {BEARER_TOKEN}", "user-agent": "curl/8.0.0"}
+    headers = {"authorization": f"Bearer {BEARER_TOKEN}", "user-agent": "okhttp/4.12.0"}
 
     params = {
         "transaction_type": "TRANSACTION_TYPE_NET",
@@ -177,7 +177,7 @@ def get_market_detectors(symbol, date=None, limit=100, max_retries=3):
 def get_orderbook(symbol, max_retries=3):
     url = f"{BASE_URL}/company-price-feed/v2/orderbook/companies/{symbol}"
 
-    headers = {"authorization": f"Bearer {BEARER_TOKEN}", "user-agent": "curl/8.0.0"}
+    headers = {"authorization": f"Bearer {BEARER_TOKEN}", "user-agent": "okhttp/4.12.0"}
 
     for attempt in range(max_retries):
         try:

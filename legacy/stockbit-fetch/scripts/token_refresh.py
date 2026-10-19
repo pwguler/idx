@@ -28,7 +28,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STORE = os.path.join(REPO, ".sb_tokens.json")
 ENV = os.path.join(REPO, ".env")
 REFRESH_URL = "https://exodus.stockbit.com/login/refresh"
-HEADERS_UA = "curl/8.0.0"
+HEADERS_UA = "okhttp/4.12.0"
 # Browser-like headers: Cloudflare on exodus.stockbit.com rejects bare curl/okhttp
 # UA on /login/refresh (returns HTML challenge -> parsed as "expired"). Mimic the
 # web app so the refresh chain actually rotates.

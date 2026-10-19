@@ -34,7 +34,7 @@ BASE_URL = "https://exodus.stockbit.com"
 def get_stock_data(symbol, endpoint, max_retries=3):
     url = f"{BASE_URL}/emitten/{symbol}/{endpoint}"
 
-    headers = {"authorization": f"Bearer {BEARER_TOKEN}", "user-agent": "curl/8.0.0"}
+    headers = {"authorization": f"Bearer {BEARER_TOKEN}", "user-agent": "okhttp/4.12.0"}
 
     for attempt in range(max_retries):
         try:

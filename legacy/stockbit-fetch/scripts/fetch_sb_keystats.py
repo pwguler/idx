@@ -34,7 +34,7 @@ BASE_URL = "https://exodus.stockbit.com"
 def get_keystats(symbol, year_limit=10, max_retries=3):
     url = f"{BASE_URL}/keystats/ratio/v1/{symbol}"
 
-    headers = {"authorization": f"Bearer {BEARER_TOKEN}", "user-agent": "curl/8.0.0"}
+    headers = {"authorization": f"Bearer {BEARER_TOKEN}", "user-agent": "okhttp/4.12.0"}
 
     params = {"year_limit": year_limit}
 

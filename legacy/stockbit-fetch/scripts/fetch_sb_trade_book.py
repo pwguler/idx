@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from pymongo import MongoClient
 
 import net
-from lib import get_trading_dates, load_holidays, load_stock_list
+from lib import get_trading_dates, is_empty_rows, load_holidays, load_stock_list, Throttled
 
 _tls = __import__("threading").local()
 
@@ -35,7 +35,7 @@ BASE_URL = "https://exodus.stockbit.com"
 def get_trade_book(symbol, date, group_by="GROUP_BY_TIME", time_interval="10m", max_retries=3):
     url = f"{BASE_URL}/order-trade/trade-book"
 
-    headers = {"authorization": f"Bearer {BEARER_TOKEN}", "user-agent": "curl/8.0.0"}
+    headers = {"authorization": f"Bearer {BEARER_TOKEN}", "user-agent": "okhttp/4.12.0"}
 
     params = {"symbol": symbol, "date": date, "group_by": group_by, "time_interval": time_interval}
 

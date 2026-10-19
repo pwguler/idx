@@ -128,8 +128,8 @@ def add_cli_args(parser):
         default=None,
         metavar="URL",
         help=(
-            "proxy for all outbound fetches, e.g. http://10.10.1.54:8080 or "
-            "socks5h://10.10.1.54:1080; pass '' to go direct "
+            "proxy for all outbound fetches, e.g. http://host:8080 or "
+            "socks5h://host:1080; pass '' to go direct "
             f"(default from .env FETCH_PROXY: {_proxy or 'direct'})"
         ),
     )

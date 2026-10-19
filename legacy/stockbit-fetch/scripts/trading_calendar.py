@@ -46,7 +46,7 @@ def load_token():
 def is_trading_day(token, d):
     """Return True if d is a trading day (non-empty bandar data), else False."""
     ds = d.strftime("%Y-%m-%d")
-    h = {"authorization": f"Bearer {token}", "user-agent": "curl/8.0.0"}
+    h = {"authorization": f"Bearer {token}", "user-agent": "okhttp/4.12.0"}
     params = {
         "transaction_type": "TRANSACTION_TYPE_NET",
         "market_board": "MARKET_BOARD_REGULER",
