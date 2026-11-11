@@ -1,0 +1,47 @@
+[package]
+name = "stockbit-cli"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+description = "A clean, fast CLI for Stockbit (exodus) and Yahoo Finance market data."
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "stockbit"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive", "env", "wrap_help"] }
+tokio = { version = "1.40", features = ["macros", "rt-multi-thread", "time", "signal"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "gzip", "brotli", "cookies"] }
+# IDX sits behind Cloudflare bot-fight (TLS/JA3 fingerprinting). wreq impersonates
+# a real Chrome TLS+HTTP2 fingerprint so idx-* works with no browser and no cookie.
+# Build needs cmake + libclang (BoringSSL via boring-sys). Used only by src/idx.
+wreq = { version = "5.3", features = ["json"] }
+wreq-util = "2.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_urlencoded = "0.7"
+serde_yaml = "0.9"
+thiserror = "1"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dotenvy = "0.15"
+url = "2.5"
+async-trait = "0.1"
+
+[dev-dependencies]
+wiremock = "0.6"
+tokio = { version = "1.40", features = ["macros", "rt-multi-thread", "time", "test-util"] }
+assert_cmd = "2"
+predicates = "3"
+tempfile = "3"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"

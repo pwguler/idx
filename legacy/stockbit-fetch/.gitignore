@@ -1,0 +1,27 @@
+# Credentials & tokens
+.env
+.env.*
+!.env.example
+.sb_tokens.json
+
+# Browser profiles (huge + session data)
+.chrome-profile/
+.browser-state/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Caches / logs
+data/calendar_cache/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# host-specific runner (chat id, paths) — keep local
+scripts/cron_daily_fetch.sh

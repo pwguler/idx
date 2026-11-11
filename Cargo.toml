@@ -1,0 +1,15 @@
+[workspace]
+resolver = "3"
+members = ["crates/idx-mcp", "crates/stockbit-cli"]
+
+# Profiles live here: cargo ignores [profile] in workspace members.
+# lto cannot be set per package, so the workspace uses idx-mcp's fat LTO
+# (stockbit-cli used thin). No `panic = "abort"`: idx-mcp's connection pool and
+# auth path deliberately recover from panicked spawn_blocking tasks.
+[profile.release]
+lto = "fat"
+codegen-units = 1
+
+[profile.release.package.stockbit-cli]
+opt-level = 3
+strip = "symbols"
