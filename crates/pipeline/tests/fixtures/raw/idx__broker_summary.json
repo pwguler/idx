@@ -1,0 +1,34 @@
+[
+ {
+  "date": "2026-11-10",
+  "envelope": {
+   "fetched_at": "2026-11-10T11:00:00Z",
+   "key": "all",
+   "payload": {
+    "draw": 0,
+    "recordsTotal": 2,
+    "data": [
+     {
+      "No": 1,
+      "IDBrokerSummary": 9,
+      "Date": "2026-11-10T00:00:00",
+      "IDFirm": "YP",
+      "FirmName": "Mirae Asset Sekuritas Indonesia",
+      "Volume": 2300000000,
+      "Value": 1234567890000,
+      "Frequency": 345678
+     },
+     {
+      "No": 2,
+      "IDBrokerSummary": 10,
+      "IDFirm": "CC",
+      "FirmName": "Mandiri Sekuritas",
+      "Volume": 1100000000,
+      "Value": 987654321000,
+      "Frequency": 123456
+     }
+    ]
+   }
+  }
+ }
+]

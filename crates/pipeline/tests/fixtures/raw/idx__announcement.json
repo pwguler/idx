@@ -1,0 +1,54 @@
+[
+ {
+  "date": "2026-11-10",
+  "envelope": {
+   "fetched_at": "2026-11-10T11:00:00Z",
+   "key": "all",
+   "payload": {
+    "ResultCount": 2,
+    "Replies": [
+     {
+      "pengumuman": {
+       "Id2": "20261110001_id-id",
+       "NoPengumuman": "20261110001_id-id/BEI.PP1/11-2026",
+       "Kode_Emiten": "BBRI ",
+       "TglPengumuman": "2026-11-10T08:15:31",
+       "JudulPengumuman": "Penyampaian Laporan Bulanan Registrasi Pemegang Efek",
+       "JenisPengumuman": "Laporan Bulanan",
+       "PerihalPengumuman": "Laporan Bulanan Registrasi Pemegang Efek",
+       "Form_Id": "IDX-LBR",
+       "CreatedDate": "2026-11-10T08:15:31"
+      },
+      "attachments": [
+       {
+        "PDFFilename": "20261110001_id-id.pdf",
+        "FullSavePath": "https://www.idx.co.id/StaticData/20261110001_id-id.pdf",
+        "IsAttachment": 0
+       }
+      ]
+     },
+     {
+      "pengumuman": {
+       "Id2": "20261110002_id-id",
+       "NoPengumuman": "20261110002_id-id/BEI.PP1/11-2026",
+       "Kode_Emiten": "  ",
+       "TglPengumuman": "",
+       "JudulPengumuman": "Penyampaian Laporan Bulanan Registrasi Pemegang Efek",
+       "JenisPengumuman": "Laporan Bulanan",
+       "PerihalPengumuman": "Laporan Bulanan Registrasi Pemegang Efek",
+       "Form_Id": "IDX-LBR",
+       "CreatedDate": ""
+      },
+      "attachments": [
+       {
+        "PDFFilename": "20261110002_id-id.pdf",
+        "FullSavePath": "https://www.idx.co.id/StaticData/20261110002_id-id.pdf",
+        "IsAttachment": 0
+       }
+      ]
+     }
+    ]
+   }
+  }
+ }
+]

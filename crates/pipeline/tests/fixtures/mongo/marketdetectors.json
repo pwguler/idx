@@ -1,0 +1,2 @@
+{"_id":{"$oid":"6650a1b2c3d4e5f601234573"},"stock_code":"BBRI","date":"2026-11-09","from":"2026-11-09","to":"2026-11-09","bandar_detector":{"value":"9.5e+11","volume":"231,000,000"},"broker_summary":{"brokers_buy":[{"netbs_broker_code":"BK","bval":"6.0e+10","blot":"146,341","netbs_date":"20261109"}],"brokers_sell":[]}}
+{"_id":{"$oid":"6650a1b2c3d4e5f601234574"},"stock_code":"BBCA","date":{"$date":"2026-11-09T00:00:00Z"},"from":"2026-11-09","to":"2026-11-09","bandar_detector":{"value":0},"broker_summary":{"brokers_buy":[],"brokers_sell":[]}}

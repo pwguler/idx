@@ -1,0 +1,2 @@
+{"_id":{"$oid":"6650a1b2c3d4e5f601234575"},"stock_code":"BBRI","date":"2026-11-09","lastprice":4050,"total_bid_offer":{"bid":{"lot":"345,678"}}}
+{"_id":{"$oid":"6650a1b2c3d4e5f601234576"},"stock_code":"BBCA","date":"2026-01-05T00:00:00","data":{"lastprice":9800}}

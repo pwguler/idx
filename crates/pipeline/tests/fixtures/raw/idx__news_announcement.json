@@ -1,0 +1,40 @@
+[
+ {
+  "date": "2026-11-10",
+  "envelope": {
+   "fetched_at": "2026-11-10T11:00:00Z",
+   "key": "feed",
+   "payload": {
+    "Items": [
+     {
+      "Id": "a1",
+      "AnnouncementNo": "Peng-00123/BEI.PP1/11-2026",
+      "PublishDate": "2026-11-10T16:30:00",
+      "Title": "Penghentian Sementara Perdagangan Saham BBRI",
+      "Code": " BBRI",
+      "Jenis": "Pengumuman",
+      "JmsxGroupId": "g1",
+      "Attachments": [
+       {
+        "PDFFilename": "peng.pdf",
+        "FullSavePath": "https://www.idx.co.id/peng.pdf",
+        "IsAttachment": 0
+       }
+      ]
+     },
+     {
+      "Id": "a2",
+      "AnnouncementNo": "",
+      "PublishDate": "2026-11-10T17:00:00",
+      "Title": "Berita RUPS",
+      "Code": null,
+      "Jenis": "Berita",
+      "JmsxGroupId": "",
+      "Attachments": null,
+      "PdfPath": "[{\"PDFFilename\": \"rups.pdf\", \"IsAttachment\": 0}]"
+     }
+    ]
+   }
+  }
+ }
+]

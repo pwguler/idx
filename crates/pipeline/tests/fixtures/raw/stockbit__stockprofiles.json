@@ -1,0 +1,89 @@
+[
+ {
+  "date": "2026-11-10",
+  "envelope": {
+   "fetched_at": "2026-11-10T11:00:00Z",
+   "key": "BBRI",
+   "payload": {
+    "info": {
+     "message": "ok",
+     "data": {
+      "symbol": "BBRI",
+      "name": "Bank Rakyat Indonesia (Persero) Tbk.",
+      "sector": "Finance",
+      "sub_sector": "Banks",
+      "exchange": "IDX",
+      "country": "ID",
+      "status": "ACTIVE",
+      "tradeable": true,
+      "type_company": "Saham",
+      "price": "4,100",
+      "previous": "4,050",
+      "change": "+50",
+      "percentage": "1.23",
+      "volume": "123,456,700",
+      "average": "4,098.70",
+      "value": "506.17 B",
+      "followers": "1,234,567",
+      "trading_limit_info": {
+       "haircut_percentage": "20%"
+      },
+      "margin_info": {
+       "percentage_raw": 50
+      },
+      "indexes": [
+       "IDX30",
+       "LQ45"
+      ],
+      "catalogs": [],
+      "indexes_data": []
+     }
+    },
+    "profile": {
+     "message": "ok",
+     "data": {
+      "background": "Bank Rakyat Indonesia adalah ...",
+      "history": {
+       "date": "10 Nov 2003",
+       "price": "875",
+       "board": "Utama",
+       "free_float": "46.81%"
+      },
+      "address": [
+       {
+        "office": "Jakarta",
+        "email": "\"humas@bri.co.id\""
+       }
+      ],
+      "secretary": [
+       {
+        "name": "Agustya Hendy Bernadi",
+        "email": "corsec@bri.co.id"
+       }
+      ],
+      "key_executive": {
+       "president_director": [
+        {
+         "name": "X"
+        }
+       ]
+      },
+      "listing_information": [
+       {
+        "board": "Utama"
+       }
+      ],
+      "shareholder": [
+       {
+        "name": "Negara RI",
+        "percentage": "53.19%"
+       }
+      ],
+      "subsidiary": [],
+      "shareholder_numbers": []
+     }
+    }
+   }
+  }
+ }
+]

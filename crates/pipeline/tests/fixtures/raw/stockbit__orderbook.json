@@ -1,0 +1,75 @@
+[
+ {
+  "date": "2026-11-10",
+  "envelope": {
+   "fetched_at": "2026-11-10T11:00:00Z",
+   "key": "BBRI",
+   "payload": {
+    "message": "ok",
+    "data": {
+     "symbol": "BBRI",
+     "lastprice": 4100,
+     "average": 4098.7,
+     "open": 4060,
+     "high": 4110,
+     "low": 4040,
+     "close": 4100,
+     "previous": 4050,
+     "change": 50,
+     "percentage_change": 1.23,
+     "volume": 123456700,
+     "value": 506172470000,
+     "frequency": 23456,
+     "fbuy": 56000000,
+     "fsell": 34000000,
+     "fnet": 22000000,
+     "foreign": "12.5",
+     "domestic": "87.5",
+     "up": "123",
+     "down": "45",
+     "unchanged": "6",
+     "total_bid_offer": {
+      "bid": {
+       "freq": "1,234",
+       "lot": "345,678"
+      },
+      "offer": {
+       "freq": "2,345",
+       "lot": "456,789"
+      }
+     },
+     "bid": [
+      {
+       "price": "4,100",
+       "que_num": "12",
+       "volume": "1,200,000",
+       "change_percentage": "1.23"
+      }
+     ],
+     "offer": [
+      {
+       "price": "4,110",
+       "que_num": "8",
+       "volume": "900,000",
+       "change_percentage": "1.48"
+      }
+     ],
+     "ara": {
+      "value": "5,100",
+      "visible": true
+     },
+     "arb": {
+      "value": "3,450",
+      "visible": true
+     },
+     "corp_action": {
+      "active": false,
+      "text": ""
+     },
+     "uma": false,
+     "notation": []
+    }
+   }
+  }
+ }
+]
