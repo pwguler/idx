@@ -26,7 +26,9 @@ use wreq_util::Emulation;
 use crate::error::{Error, Result};
 use crate::transport::{self, RawResponse, RetryPolicy, Source};
 
+pub mod announcement;
 pub mod broker_summary;
+pub mod news;
 pub mod stock_summary;
 
 const REAL_BASE: &str = "https://www.idx.co.id";
