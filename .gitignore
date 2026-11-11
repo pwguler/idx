@@ -1,0 +1,22 @@
+# Rust (workspace target dir)
+/target
+**/*.rs.bk
+Cargo.lock.bak
+
+# Credentials & tokens
+.env
+.env.*
+!.env.example
+.sb_tokens.json
+
+# idx-mcp local data and caches when run from the repo root
+/data
+/.tmp
+*.sqlite
+*.sqlite-journal
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Per-project rules stay in crates/*/.gitignore and legacy/stockbit-fetch/.gitignore.

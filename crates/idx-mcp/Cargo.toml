@@ -33,9 +33,3 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = "2.5"
 wreq = "5.3.0"
 wreq-util = "2.2.6"
-
-# Release tuning. No `panic = "abort"`: the connection pool and auth path
-# deliberately recover from panicked spawn_blocking tasks, which abort would defeat.
-[profile.release]
-lto = "fat"
-codegen-units = 1
