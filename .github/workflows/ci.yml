@@ -3,6 +3,7 @@ name: ci
 on:
   pull_request:
   push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -21,8 +22,8 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
 
-      # BoringSSL (via wreq, used by get_filing) builds from source at compile
-      # time: needs cmake + a C/C++ toolchain, libclang for bindgen, and Go.
+      # BoringSSL (via wreq, used by idx-mcp's get_filing and every IDX client)
+      # builds from source: needs cmake + a C/C++ toolchain, libclang for bindgen, and Go.
       - name: set up go (for boringssl build)
         uses: actions/setup-go@v5
         with:
@@ -31,11 +32,15 @@ jobs:
       - name: install boringssl build deps
         run: sudo apt-get update && sudo apt-get install -y cmake clang libclang-dev
 
-      - name: check formatting
-        run: cargo fmt --check
+      # BoringSSL dominates a cold build; target/ also holds the downloaded libduckdb.
+      - name: cache cargo build
+        uses: Swatinem/rust-cache@v2
 
-      - name: run tests
-        run: cargo test --locked
+      - name: check formatting
+        run: cargo fmt --all --check
 
       - name: run clippy
-        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+        run: cargo clippy --workspace --locked --all-targets --all-features -- -D warnings
+
+      - name: run tests
+        run: cargo test --workspace --locked
