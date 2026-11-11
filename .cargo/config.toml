@@ -1,0 +1,6 @@
+[env]
+# idx-mcp links DuckDB's official prebuilt libduckdb, which libduckdb-sys downloads
+# for the crate's DuckDB version into target/duckdb-download/, instead of compiling
+# DuckDB's C++. Set DUCKDB_LIB_DIR (and DUCKDB_INCLUDE_DIR) to link a system or
+# packaged libduckdb instead; it takes precedence. Existing env values win.
+DUCKDB_DOWNLOAD_LIB = "1"
