@@ -1,4 +1,4 @@
-//! Indicators match the pandas reference (`calculate_indicators` from the legacy
+//! Indicators match the pandas reference (`calculate_indicators` from stockbit-fetch's
 //! `fetch_yf_indicators.py`) within 1e-6 relative, including warm-up nulls.
 
 use std::path::Path;
