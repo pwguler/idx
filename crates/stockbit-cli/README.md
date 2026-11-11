@@ -35,7 +35,8 @@ Other sources, resolved in this order (first wins):
 |---------:|---------------------|-------------------------------------------------|
 | 1        | CLI flag            | `stockbit --token eyJhbG… keystats BBRI`        |
 | 2        | Environment         | `STOCKBIT_BEARER_TOKEN=eyJhbG… stockbit ...`    |
-| 3        | `~/.stockbit-cli/config.yaml` | (written by `config set`)            |
+| 3        | `~/.stockbit-cli/tokens.json` | rotating store written by `pipeline token seed\|refresh` (path override: `STOCKBIT_TOKEN_STORE`) |
+| 4        | `~/.stockbit-cli/config.yaml` | (written by `config set`)            |
 
 ### Config management
 

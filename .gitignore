@@ -7,9 +7,9 @@ Cargo.lock.bak
 .env
 .env.*
 !.env.example
-.sb_tokens.json
 
-# idx-mcp local data and caches when run from the repo root
+# pipeline raw zone and Parquet output, and idx-mcp caches, when run from the repo root
+/raw
 /data
 /.tmp
 *.sqlite
@@ -19,4 +19,4 @@ Cargo.lock.bak
 .DS_Store
 Thumbs.db
 
-# Per-project rules stay in crates/*/.gitignore and legacy/stockbit-fetch/.gitignore.
+# Per-crate rules stay in crates/*/.gitignore.

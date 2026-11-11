@@ -1,0 +1,96 @@
+[
+ {
+  "date": "2026-11-10",
+  "envelope": {
+   "fetched_at": "2026-11-10T11:00:00Z",
+   "key": "BBRI",
+   "payload": {
+    "message": "ok",
+    "data": {
+     "stats": {
+      "market_cap": "54,898 B",
+      "enterprise_value": "(1,234 B)",
+      "current_share_outstanding": "7.79 B",
+      "free_float": "18.81%"
+     },
+     "dividend_group": {
+      "dividend_year_values": [
+       {
+        "period": 2024,
+        "dividend": "150",
+        "ex_date": "18 Nov 24",
+        "payment_date": "10 Dec 24"
+       },
+       {
+        "period": 2025,
+        "dividend": "1,234.5",
+        "ex_date": "18 Nov 25",
+        "payment_date": "9 Dec 25"
+       }
+      ]
+     },
+     "financial_report_currency": [
+      "IDR",
+      "USD"
+     ],
+     "closure_fin_items_results": [
+      {
+       "keystats_name": "Current Valuation",
+       "fin_name_results": [
+        {
+         "fitem": {
+          "id": "2891",
+          "name": "Current PE Ratio (TTM)",
+          "value": "11.23"
+         },
+         "hidden_graph_ico": false,
+         "is_new_update": false
+        },
+        {
+         "fitem": {
+          "id": "1461",
+          "name": "Return on Equity (TTM)",
+          "value": "18.81%"
+         },
+         "hidden_graph_ico": true,
+         "is_new_update": false
+        }
+       ]
+      },
+      {
+       "keystats_name": "Income Statement",
+       "fin_name_results": [
+        {
+         "fitem": {
+          "id": "1555",
+          "name": "Net Income (TTM)",
+          "value": "(6,191 B)"
+         },
+         "hidden_graph_ico": false,
+         "is_new_update": true
+        },
+        {
+         "fitem": {
+          "id": "9999",
+          "name": "Latest Report",
+          "value": "-"
+         },
+         "hidden_graph_ico": false,
+         "is_new_update": false
+        }
+       ]
+      }
+     ],
+     "financial_year_parent": {
+      "financial_year_charts": [
+       {
+        "year": 2025,
+        "value": "1.2"
+       }
+      ]
+     }
+    }
+   }
+  }
+ }
+]

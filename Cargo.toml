@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/idx-mcp", "crates/stockbit-cli"]
+members = ["crates/idx-mcp", "crates/pipeline", "crates/stockbit-cli"]
 
 # Profiles live here: cargo ignores [profile] in workspace members.
 # lto cannot be set per package, so the workspace uses idx-mcp's fat LTO

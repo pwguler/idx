@@ -1,0 +1,190 @@
+[
+ {
+  "date": "2026-11-10",
+  "envelope": {
+   "fetched_at": "2026-11-10T11:00:00Z",
+   "key": "BBRI",
+   "payload": {
+    "quoteSummary": {
+     "error": null,
+     "result": [
+      {
+       "price": {
+        "maxAge": 1,
+        "longName": "PT Bank Rakyat Indonesia (Persero) Tbk",
+        "regularMarketPrice": {
+         "raw": 4100.0,
+         "fmt": "4100.0"
+        },
+        "marketCap": {
+         "raw": 621391906586624,
+         "fmt": "621391906586624"
+        },
+        "currency": "IDR"
+       },
+       "summaryDetail": {
+        "maxAge": 1,
+        "marketCap": {
+         "raw": 621000000000000,
+         "fmt": "621000000000000"
+        },
+        "trailingPE": {
+         "raw": 11.23,
+         "fmt": "11.23"
+        },
+        "forwardPE": {
+         "raw": 9.87,
+         "fmt": "9.87"
+        },
+        "priceToSalesTrailing12Months": {
+         "raw": 3.21,
+         "fmt": "3.21"
+        },
+        "beta": {
+         "raw": 0.87,
+         "fmt": "0.87"
+        },
+        "fiftyTwoWeekHigh": {
+         "raw": 4800.0,
+         "fmt": "4800.0"
+        },
+        "fiftyTwoWeekLow": {
+         "raw": 3500.0,
+         "fmt": "3500.0"
+        },
+        "averageVolume": {
+         "raw": 150000000,
+         "fmt": "150000000"
+        },
+        "dividendRate": {
+         "raw": 343.85,
+         "fmt": "343.85"
+        },
+        "dividendYield": {
+         "raw": 0.0839,
+         "fmt": "0.0839"
+        },
+        "payoutRatio": {
+         "raw": 0.85,
+         "fmt": "0.85"
+        }
+       },
+       "defaultKeyStatistics": {
+        "maxAge": 1,
+        "enterpriseValue": {
+         "raw": 1234567890000000,
+         "fmt": "1234567890000000"
+        },
+        "pegRatio": {
+         "raw": 1.5,
+         "fmt": "1.5"
+        },
+        "priceToBook": {
+         "raw": 2.1,
+         "fmt": "2.1"
+        },
+        "sharesOutstanding": {
+         "raw": 151559001604,
+         "fmt": "151559001604"
+        },
+        "floatShares": {
+         "raw": 70000000000,
+         "fmt": "70000000000"
+        },
+        "heldPercentInsiders": {
+         "raw": 0.5319,
+         "fmt": "0.5319"
+        },
+        "heldPercentInstitutions": {
+         "raw": 0.2511,
+         "fmt": "0.2511"
+        },
+        "trailingEps": {
+         "raw": 365.1,
+         "fmt": "365.1"
+        },
+        "forwardEps": {
+         "raw": 415.4,
+         "fmt": "415.4"
+        },
+        "bookValue": {
+         "raw": 1950.2,
+         "fmt": "1950.2"
+        }
+       },
+       "financialData": {
+        "maxAge": 86400,
+        "currentPrice": {
+         "raw": 4100.0,
+         "fmt": "4100.0"
+        },
+        "targetMeanPrice": {
+         "raw": 4950.5,
+         "fmt": "4950.5"
+        },
+        "recommendationKey": "buy",
+        "numberOfAnalystOpinions": {
+         "raw": 27,
+         "fmt": "27"
+        },
+        "totalCash": {
+         "raw": 250000000000000,
+         "fmt": "250000000000000"
+        },
+        "totalDebt": {
+         "raw": 300000000000000,
+         "fmt": "300000000000000"
+        },
+        "debtToEquity": null,
+        "currentRatio": {},
+        "totalRevenue": {
+         "raw": 190000000000000,
+         "fmt": "190000000000000"
+        },
+        "revenueGrowth": {
+         "raw": 0.042,
+         "fmt": "0.042"
+        },
+        "earningsGrowth": {
+         "raw": -0.051,
+         "fmt": "-0.051"
+        },
+        "grossMargins": {
+         "raw": 0.0,
+         "fmt": "0.0"
+        },
+        "operatingMargins": {
+         "raw": 0.52,
+         "fmt": "0.52"
+        },
+        "profitMargins": {
+         "raw": 0.31,
+         "fmt": "0.31"
+        },
+        "returnOnAssets": {
+         "raw": 0.031,
+         "fmt": "0.031"
+        },
+        "returnOnEquity": {
+         "raw": 0.187,
+         "fmt": "0.187"
+        },
+        "freeCashflow": {
+         "raw": -12000000000000,
+         "fmt": "-12000000000000"
+        }
+       },
+       "assetProfile": {
+        "maxAge": 86400,
+        "sector": "Financial Services",
+        "industry": "Banks - Regional",
+        "longBusinessSummary": "PT Bank Rakyat Indonesia (Persero) Tbk provides banking products.",
+        "companyOfficers": []
+       }
+      }
+     ]
+    }
+   }
+  }
+ }
+]

@@ -1,0 +1,77 @@
+[
+ {
+  "date_info": "2026-11-10",
+  "start_date": "2026-11-10",
+  "end_date": "2026-11-10",
+  "by_value": {
+   "top_broker_buy": [
+    {
+     "detail": {
+      "code": "BK",
+      "type": "Asing",
+      "amount": 60000000000
+     },
+     "distribute_to": [
+      {
+       "code": "YP",
+       "type": "Lokal",
+       "amount": 30000000000
+      }
+     ]
+    }
+   ],
+   "top_broker_sell": [
+    {
+     "detail": {
+      "code": "CC",
+      "type": "Asing",
+      "amount": 20000000000
+     },
+     "distribute_to": [
+      {
+       "code": "YP",
+       "type": "Lokal",
+       "amount": 10000000000
+      }
+     ]
+    }
+   ]
+  },
+  "by_volume": {
+   "top_broker_buy": [
+    {
+     "detail": {
+      "code": "BK",
+      "type": "Asing",
+      "amount": 146341
+     },
+     "distribute_to": [
+      {
+       "code": "YP",
+       "type": "Lokal",
+       "amount": 73170
+      }
+     ]
+    }
+   ],
+   "top_broker_sell": [
+    {
+     "detail": {
+      "code": "CC",
+      "type": "Asing",
+      "amount": 48780
+     },
+     "distribute_to": [
+      {
+       "code": "YP",
+       "type": "Lokal",
+       "amount": 24390
+      }
+     ]
+    }
+   ]
+  },
+  "date": "2026-11-10",
+  "stock_code": "BBRI"
+ }
+]

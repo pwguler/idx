@@ -1,0 +1,79 @@
+[
+ {
+  "date": "2026-11-10",
+  "envelope": {
+   "fetched_at": "2026-11-10T11:00:00Z",
+   "key": "BBRI",
+   "payload": {
+    "message": "Successfully retrieved",
+    "data": {
+     "from": "2026-11-10",
+     "to": "2026-11-10",
+     "bandar_detector": {
+      "broker_accdist": "Acc",
+      "avg": {
+       "accdist": "Acc",
+       "amount": "8.5e+10",
+       "percent": "12.5",
+       "vol": "2.1e+07"
+      },
+      "avg5": {
+       "accdist": "Normal Acc",
+       "amount": 1
+      },
+      "top1": {
+       "accdist": "Big Acc",
+       "code": "BK",
+       "amount": 60000000000
+      },
+      "top3": {
+       "accdist": "Big Acc",
+       "amount": 120000000000,
+       "percent": 18.0
+      },
+      "top5": {
+       "accdist": "Normal Acc"
+      },
+      "top10": {
+       "accdist": "Small Acc"
+      },
+      "value": "9.5e+11",
+      "volume": "231,000,000",
+      "average_price": "4,112.5",
+      "total_buyer": 52,
+      "total_seller": 43,
+      "number_broker_buysell": 95
+     },
+     "broker_summary": {
+      "brokers_buy": [
+       {
+        "netbs_broker_code": "BK",
+        "netbs_date": "20261110",
+        "bval": "6.0e+10",
+        "blot": "146,341",
+        "bvalv": "6.0e+10",
+        "blotv": "14634100",
+        "netbs_buy_avg_price": "4,100.5",
+        "freq": "1,234",
+        "type": "Asing"
+       }
+      ],
+      "brokers_sell": [
+       {
+        "netbs_broker_code": "YP",
+        "netbs_date": "20261110",
+        "sval": "-2.0e+10",
+        "slot": "-48,780",
+        "svalv": "-2.0e+10",
+        "slotv": "-4878000",
+        "netbs_sell_avg_price": "4,099",
+        "freq": "987",
+        "type": "Lokal"
+       }
+      ]
+     }
+    }
+   }
+  }
+ }
+]

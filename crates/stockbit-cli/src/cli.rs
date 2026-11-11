@@ -23,7 +23,8 @@ use crate::yahoo::{self, YahooClient};
     about = "CLI for Stockbit (exodus), Yahoo Finance, and IDX market data.",
     long_about = "Writes raw upstream JSON to stdout — pipe into `jq` or redirect to a file.\n\n\
                   Stockbit auth (resolved in order): --token flag, $STOCKBIT_BEARER_TOKEN env var, \
-                  ~/.stockbit-cli/config.yaml. Manage the stored config with \
+                  the rotating store ~/.stockbit-cli/tokens.json, ~/.stockbit-cli/config.yaml. \
+                  Manage the stored config with \
                   `stockbit config set token <VALUE>`.\n\n\
                   Yahoo commands (`yf-*`) need no token — `yf-summary`/`yf-analyst` perform \
                   Yahoo's cookie+crumb handshake automatically.\n\n\

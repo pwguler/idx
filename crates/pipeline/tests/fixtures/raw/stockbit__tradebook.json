@@ -1,0 +1,45 @@
+[
+ {
+  "date": "2026-11-10",
+  "envelope": {
+   "fetched_at": "2026-11-10T11:00:00Z",
+   "key": "BBRI",
+   "payload": {
+    "message": "ok",
+    "data": {
+     "from": "",
+     "to": "",
+     "book_total": {
+      "buy_lot": "885,000",
+      "sell_lot": "885,000",
+      "buy_percentage": "44%",
+      "sell_percentage": "56%",
+      "buy_frequency": "45,000",
+      "sell_frequency": "55,000"
+     },
+     "book": [
+      {
+       "time": "09:00",
+       "buy": {
+        "lot": "50,000",
+        "percentage": "48%"
+       },
+       "sell": {
+        "lot": "55,000",
+        "percentage": "52%"
+       },
+       "total": {
+        "lot": "105,000"
+       }
+      }
+     ],
+     "is_fca_stock": false,
+     "market_hour_steps": [
+      "09:00",
+      "09:10"
+     ]
+    }
+   }
+  }
+ }
+]

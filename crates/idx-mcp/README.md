@@ -4,19 +4,22 @@ A remote MCP server that gives AI agents Indonesian (IDX) market data — prices
 
 ## Install
 
-Install the `idx-mcp` binary from source with Cargo:
+Build from a checkout of the [idx](https://github.com/pwguler/idx) workspace:
 
 ```bash
-cargo install --git https://github.com/gitshrl/idx-mcp-server.git --locked --bin idx-mcp
+cargo build --release -p idx-mcp
 ```
 
-For local development from this checkout:
+DuckDB is not compiled from source. The build links DuckDB's official prebuilt `libduckdb`, which `libduckdb-sys` downloads for the pinned DuckDB version into `target/duckdb-download/` (set by the workspace `.cargo/config.toml`). To link a system or packaged copy instead, set `DUCKDB_LIB_DIR` (and `DUCKDB_INCLUDE_DIR`). Pinned to Rust 1.96.0 through `rust-toolchain.toml`.
+
+`idx-mcp` loads `libduckdb.so` at runtime and looks for it in its own directory first, so deploy the two files together:
 
 ```bash
-cargo build --release
+install -D target/release/idx-mcp /opt/idx-mcp/idx-mcp
+install -D target/duckdb-download/x86_64-unknown-linux-gnu/*/libduckdb.so /opt/idx-mcp/libduckdb.so
 ```
 
-The first build compiles a bundled DuckDB from source (a few minutes). Pinned to Rust 1.96.0 through `rust-toolchain.toml`.
+`cargo run` and `cargo test` find the downloaded library on their own.
 
 ## Run
 

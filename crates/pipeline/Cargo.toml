@@ -1,0 +1,38 @@
+[package]
+name = "pipeline"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+description = "Fetch IDX, Stockbit, and Yahoo market data into a raw zone and build the idx-mcp Parquet contract."
+license = "MIT"
+publish = false
+
+[dependencies]
+stockbit-cli = { path = "../stockbit-cli" }
+anyhow = "1"
+arrow-array = "58"
+arrow-schema = "58"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+clap = { version = "4.5", features = ["derive", "env", "wrap_help"] }
+futures = "0.3"
+# Pure-Rust Parquet writer: pipeline builds never compile bundled DuckDB C++.
+parquet = { version = "58", default-features = false, features = ["arrow", "zstd"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1.40", features = ["macros", "rt-multi-thread", "time", "sync", "fs"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+zstd = "0.13"
+
+[dev-dependencies]
+assert_cmd = "2"
+tempfile = "3"
+tokio = { version = "1.40", features = ["macros", "rt-multi-thread", "time", "test-util"] }
+wiremock = "0.6"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"

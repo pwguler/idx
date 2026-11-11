@@ -2,41 +2,42 @@
 
 Indonesian market data: fetch, store, and serve.
 
-This repo brings three projects together with their full git history. Each one keeps its own README with usage details.
+```
+IDX / Stockbit / Yahoo ──pipeline fetch──▶ raw/   (zstd NDJSON, verbatim payloads)
+                                              │
+                                        pipeline etl
+                                              ▼
+                                           data/  (contract Parquet) ──▶ idx-mcp ──▶ MCP clients
+```
 
 ## Layout
 
 ```
 Cargo.toml              Cargo workspace (crates/*)
 rust-toolchain.toml     Rust 1.96.0 for the whole workspace
-rustfmt.toml
+.cargo/config.toml      links DuckDB's prebuilt libduckdb (no C++ DuckDB build)
+docs/                   spec and ADRs
 crates/
+  pipeline/             `pipeline`: fetch jobs, raw zone, Parquet ETL, token store, backfill
+  stockbit-cli/         `stockbit` CLI plus the exodus/IDX/Yahoo client library
   idx-mcp/              MCP server: Parquet from R2 or a local dir, queried through DuckDB
-  stockbit-cli/         `stockbit` CLI for Stockbit, Yahoo Finance, and IDX
-legacy/
-  stockbit-fetch/       Python daily ingest into MongoDB (not part of the Cargo workspace)
 ```
 
-| Path | Imported from | Package / binary |
+| Path | Package / binary | Origin |
 |---|---|---|
-| `crates/idx-mcp` | [pwguler/idx-mcp-server](https://github.com/pwguler/idx-mcp-server) | `idx-mcp` |
-| `crates/stockbit-cli` | [pwguler/stockbit-cli](https://github.com/pwguler/stockbit-cli) | `stockbit-cli` / `stockbit` |
-| `legacy/stockbit-fetch` | [pwguler/stockbit-fetch](https://github.com/pwguler/stockbit-fetch) | Python scripts |
+| `crates/pipeline` | `pipeline` | new; replaces [pwguler/stockbit-fetch](https://github.com/pwguler/stockbit-fetch) and its MongoDB |
+| `crates/stockbit-cli` | `stockbit-cli` / `stockbit` | [pwguler/stockbit-cli](https://github.com/pwguler/stockbit-cli), with history |
+| `crates/idx-mcp` | `idx-mcp` | [pwguler/idx-mcp-server](https://github.com/pwguler/idx-mcp-server), with history |
 
-## Data flow
-
-The projects are not wired together yet:
-
-- Production ingest (`legacy/stockbit-fetch`) still writes to MongoDB.
-- `idx-mcp` still reads hive-partitioned Parquet that follows the data contract in [`crates/idx-mcp/.claude/05-data-contract.md`](crates/idx-mcp/.claude/05-data-contract.md). The dev Mongo-to-Parquet ETL is `crates/idx-mcp/src/bin/etl.rs`.
-
-The later work: a shared Rust client feeds an `idx-ingest` crate that writes the data contract as Parquet to R2, `idx-mcp` keeps serving it, and token refresh moves from Python into the Rust client.
+The pipeline writes the Parquet layout idx-mcp reads: `data/<dataset>/date=YYYY-MM-DD/*.parquet` for time series and `data/<dataset>/latest.parquet` for snapshots. Columns follow the data contract in [`crates/idx-mcp/.claude/05-data-contract.md`](crates/idx-mcp/.claude/05-data-contract.md). See [`crates/pipeline/README.md`](crates/pipeline/README.md) for the daily run, history import, and backfill, and [ADR 0001](docs/adr/0001-file-raw-zone-replaces-mongodb.md) for why files replaced MongoDB.
 
 ## Build
 
 ```bash
-cargo build --release -p idx-mcp        # first build compiles bundled DuckDB (slow)
-cargo build --release -p stockbit-cli   # binary: target/release/stockbit
+cargo build --release --workspace
+cargo test --workspace
 ```
 
-Both crates build BoringSSL from source (via `wreq`), so the build needs `cmake`, a C/C++ toolchain, and `libclang`. Binaries land in the root `target/`. Release profiles live in the root `Cargo.toml`.
+- **BoringSSL:** the IDX clients build BoringSSL from source (via `wreq`), so the build needs `cmake`, a C/C++ toolchain, `libclang`, and Go.
+- **DuckDB:** never compiled from source ([ADR 0002](docs/adr/0002-prebuilt-duckdb.md)). The first build downloads DuckDB's official `libduckdb` into `target/duckdb-download/`; set `DUCKDB_LIB_DIR` to use a system copy. A deployed `idx-mcp` needs `libduckdb.so` in its own directory.
+- **Profiles:** release profiles live in the root `Cargo.toml`.
