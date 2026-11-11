@@ -10,11 +10,11 @@ The ingestion pipeline wrote raw API payloads into MongoDB, whose only role was 
 
 ## Decision
 
-The pipeline writes verbatim API payloads as zstd-compressed NDJSON partitioned by source and date (`raw/<source>/<dataset>/date=YYYY-MM-DD/`), and an etl step transforms raw into contract Parquet with DuckDB. MongoDB is retired after a one-time operator-run mongoexport that a dedicated import command folds into the raw zone.
+The pipeline writes verbatim API payloads as zstd-compressed NDJSON partitioned by source and date (`raw/<source>/<dataset>/date=YYYY-MM-DD/`), and an etl step transforms raw into contract Parquet with the Rust `parquet` crate, in the hive-partitioned layout idx-mcp reads. The pipeline does not depend on DuckDB ([ADR 0002](0002-prebuilt-duckdb.md)). MongoDB is retired after a one-time operator-run mongoexport that a dedicated import command folds into the raw zone.
 
 ## Consequences
 
-- No database server to run; the manual export hop disappears; ingestion is Rust concurrency plus DuckDB bulk writes.
+- No database server to run; the manual export hop disappears; ingestion is Rust concurrency plus Parquet writes from Rust.
 - Contract changes replay against the full raw zone in minutes instead of applying only to future data.
 - Query semantics move from Mongo upserts to idempotent per-partition file overwrite; re-runs of a (dataset, date) replace that partition.
 - History and fresh fetches are indistinguishable to etl once the one-time import lands.

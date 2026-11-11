@@ -45,7 +45,7 @@ pub type Report = Vec<(Dataset, usize)>;
 ///
 /// # Errors
 ///
-/// Fails on unreadable raw files or a DuckDB/filesystem error; datasets built
+/// Fails on unreadable raw files or a Parquet/filesystem error; datasets built
 /// before the failure stay written.
 pub fn run(raw: &RawStore, data_dir: &Path, datasets: &[Dataset]) -> Result<Report> {
     let mut report = Vec::new();
@@ -223,7 +223,7 @@ fn write_file(path: &Path, columns: &[(&str, &str)], rows: &[Value]) -> Result<(
                         .collect::<StringArray>(),
                 ),
             ),
-            // DuckDB's JSON type is a string column; keep the value as JSON text.
+            // idx-mcp reads JSON columns as strings; keep the value as JSON text.
             "JSON" => (
                 DataType::Utf8,
                 Arc::new(
